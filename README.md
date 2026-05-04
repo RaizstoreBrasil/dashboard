@@ -164,3 +164,17 @@ Ou:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests\smoke_test.py -o cache_dir=data/.pytest_cache
 ```
+
+## Deploy
+
+Este repo ficou preparado para publicar o `Raiz AI Dashboard` como site estatico.
+
+- `index.html` na raiz e o ponto de entrada do Vercel
+- `vercel.json` força o deploy estatico e redireciona tudo para `index.html`
+- `.github/workflows/deploy-vercel.yml` faz deploy automatico quando os secrets do Vercel estiverem configurados no GitHub
+
+Secrets esperados no GitHub:
+
+- `VERCEL_TOKEN`
+- `VERCEL_ORG_ID`
+- `VERCEL_PROJECT_ID`

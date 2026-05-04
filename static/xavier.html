@@ -53,6 +53,15 @@
               <input id="style" name="style" required placeholder="Ex: sertanejo, pop, gospel" />
             </label>
             <label>
+              Personalidade do LocutorIA
+              <select id="locutorIaPersonality" name="locutorIaPersonality" required>
+                <option value="formal">Formal</option>
+                <option value="popular" selected>Popular</option>
+                <option value="energetico">Energetico</option>
+                <option value="jovem">Jovem</option>
+              </select>
+            </label>
+            <label>
               Tipo de conteudo
               <select id="contentType" name="contentType" required>
                 <option value="Hora certa">Hora certa</option>
@@ -192,6 +201,7 @@
               <textarea id="mapaText" rows="8" placeholder="Ex: HC=Hora certa&#10;CH=Chamada da radio&#10;COM=Comercial"></textarea>
             </label>
             <button id="analyzeFilesButton" type="button" class="generateButton">Analisar GRADE e MAPA</button>
+            <button id="testMapaButton" type="button" class="secondaryButton">Testar Xavier</button>
           </section>
 
           <section class="filePanel">
@@ -212,6 +222,16 @@
             </div>
           </section>
         </div>
+
+        <section class="recommendationPanel">
+          <div class="panelTop">
+            <h3>Teste do MAPA</h3>
+            <span class="counter">POST /mapa</span>
+          </div>
+          <div id="saida" class="recommendationGrid">
+            <p class="emptyState">Clique em Testar Xavier para ver as falas retornadas pelo backend.</p>
+          </div>
+        </section>
 
         <section class="recommendationPanel">
           <div class="panelTop">
@@ -242,6 +262,9 @@
           </div>
           <div id="eventSpeechBox" class="eventSpeechBox">
             <p class="emptyState">A fala correspondente aparece aqui quando o evento atual for HC, CH, COM ou LOC.</p>
+          </div>
+          <div id="audioQueueBox" class="audioQueueBox">
+            <p class="emptyState">A fila de audio aparece aqui quando o LocutorIA preparar falas.</p>
           </div>
           <div class="runnerActions">
             <button id="startRunnerButton" type="button">Iniciar</button>

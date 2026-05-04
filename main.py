@@ -1,5 +1,9 @@
 import os
+import json
+import re
 import time
+from datetime import datetime
+import random
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -7,6 +11,7 @@ from dotenv import load_dotenv
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 import database
 from agents.codex_agent import CodexAgentRunner
@@ -47,7 +52,10 @@ app = FastAPI(
 )
 
 STATIC_DIR = Path(__file__).parent / "static"
+XAVIER_AUDIO_DIR = STATIC_DIR / "xavier-audio"
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+ultima_fala = ""
 
 
 def agent_out(row: dict) -> AgentOut:
@@ -68,6 +76,136 @@ def run_detail_out(row: dict) -> RunDetailOut:
 
 def task_out(row: dict) -> TaskOut:
     return TaskOut(**row)
+
+
+class XavierAudioGenerateRequest(BaseModel):
+    job_id: str = Field(..., min_length=1)
+    texto: str = Field(default="")
+    contexto: str = Field(default="programacao")
+    estilo: str = Field(default="popular")
+    horario: str = Field(default="")
+    evento_anterior: dict | None = None
+    proximo_evento: dict | None = None
+    provider: str = Field(default="mock")
+
+
+class XavierMapaRequest(BaseModel):
+    mapa: str = Field(default="")
+    origem: str = Field(default="")
+
+
+def sanitize_audio_filename(value: str) -> str:
+    safe = re.sub(r"[^A-Za-z0-9_.-]+", "_", value).strip("._-")
+    return safe or "locutoria"
+
+
+def build_eventlabs_payload(payload: XavierAudioGenerateRequest) -> dict:
+    return {
+        "jobId": payload.job_id,
+        "text": payload.texto,
+        "context": payload.contexto,
+        "style": payload.estilo,
+        "scheduledAt": payload.horario,
+        "previousEvent": payload.evento_anterior,
+        "nextEvent": payload.proximo_evento,
+    }
+
+
+def gerar_fala(tipo: str) -> str:
+    global ultima_fala
+
+    falas = {
+        "COM": [
+            "Voltamos com a melhor programacao!",
+            "De volta com mais musica pra voce!",
+            "Seguimos com a melhor da radio!",
+        ],
+        "HC": [
+            f"Agora sao {datetime.now().strftime('%H:%M:%S')}",
+            f"Hora certa pra voce: {datetime.now().strftime('%H:%M:%S')}",
+        ],
+    }
+
+    lista = falas.get(tipo, [])
+    if not lista:
+        return ""
+
+    fala = random.choice(lista)
+    while fala == ultima_fala and len(lista) > 1:
+        fala = random.choice(lista)
+
+    ultima_fala = fala
+    return fala
+
+
+def write_mock_audio_file(audio_path: Path, payload: XavierAudioGenerateRequest) -> None:
+    metadata = {
+        "provider": "mock",
+        "jobId": payload.job_id,
+        "text": payload.texto,
+        "context": payload.contexto,
+        "style": payload.estilo,
+        "scheduledAt": payload.horario,
+        "previousEvent": payload.evento_anterior,
+        "nextEvent": payload.proximo_evento,
+        "generatedAt": time.time(),
+    }
+    audio_path.write_bytes(
+        b"MOCK-MP3\n" + json.dumps(metadata, ensure_ascii=False, indent=2).encode("utf-8")
+    )
+    audio_path.with_suffix(".json").write_text(
+        json.dumps(metadata, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+
+
+@app.post("/xavier/audio/generate", response_model=dict)
+def generate_xavier_audio(payload: XavierAudioGenerateRequest) -> dict:
+    XAVIER_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{sanitize_audio_filename(payload.job_id)}.mp3"
+    audio_path = XAVIER_AUDIO_DIR / filename
+    audio_url = f"/static/xavier-audio/{filename}"
+
+    if payload.provider == "eventlabs":
+        eventlabs_payload = build_eventlabs_payload(payload)
+        return {
+            "ready": False,
+            "provider": "eventlabs",
+            "audioPath": audio_url,
+            "audioFile": str(audio_path),
+            "eventLabsPayload": eventlabs_payload,
+            "message": "EventLabs integration pending. Mock file not generated.",
+        }
+
+    write_mock_audio_file(audio_path, payload)
+    return {
+        "ready": True,
+        "provider": "mock",
+        "audioPath": audio_url,
+        "audioFile": str(audio_path),
+        "message": "Mock MP3 generated locally.",
+    }
+
+
+@app.post("/mapa", response_model=dict)
+def receive_mapa(payload: XavierMapaRequest) -> dict:
+    mapa = payload.mapa or ""
+    eventos = [item.strip() for item in mapa.split(",") if item.strip()]
+    resposta = []
+
+    if "COM" in eventos:
+        fala = gerar_fala("COM")
+        print("Comercial detectado")
+        print("LocutorIA:", fala)
+        resposta.append({"tipo": "COM", "fala": fala})
+
+    if "HC" in eventos:
+        fala = gerar_fala("HC")
+        print("Hora certa detectada")
+        print("LocutorIA:", fala)
+        resposta.append({"tipo": "HC", "fala": fala})
+
+    return {"eventos": resposta}
 
 
 async def execute_run(run_id: int) -> None:

@@ -277,7 +277,9 @@ button:hover {
 .timelineContent p,
 .nextEventCard p,
 .speechCard p,
-.remainingTimeCard p {
+.remainingTimeCard p,
+.audioQueueItem p,
+.audioQueueItem small {
   color: var(--text-secondary);
   font-size: 14px;
   line-height: 1.45;
@@ -551,7 +553,8 @@ button:hover {
 .currentEventBox,
 .nextEventBox,
 .eventSpeechBox,
-.remainingTimeBox {
+.remainingTimeBox,
+.audioQueueBox {
   display: grid;
 }
 
@@ -563,7 +566,9 @@ button:hover {
 
 .nextEventCard,
 .speechCard,
-.remainingTimeCard {
+.remainingTimeCard,
+.audioQueueSummary,
+.audioQueueItem {
   display: grid;
   gap: 8px;
 }
@@ -574,6 +579,31 @@ button:hover {
 
 .remainingTimeCard {
   border-color: var(--accent);
+}
+
+.audioQueueSummary {
+  border-left: 6px solid var(--accent);
+}
+
+.audioQueueList {
+  display: grid;
+  gap: 10px;
+}
+
+.audioQueueItem {
+  border-left: 4px solid var(--border);
+}
+
+.queue-pending {
+  border-left-color: var(--border);
+}
+
+.queue-processing {
+  border-left-color: var(--info);
+}
+
+.queue-done {
+  border-left-color: var(--success);
 }
 
 .currentEventCard strong {

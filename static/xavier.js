@@ -43,22 +43,32 @@ const xavierNeurons = [
 ];
 
 const programEvents = [];
+const audioQueue = [];
 const runnerState = {
   items: [],
+  eventQueue: [],
   alerts: [],
-  tomaCues: [],
+  locutorIaCues: [],
+  locutorIaPlayback: null,
+  audioQueue,
   currentIndex: 0,
   timer: null,
   running: false,
   realtime: false,
+  loopAnchorSeconds: null,
+  queueCycleSeconds: 0,
 };
 
-let lastTomaSpeech = "";
+const locutorIaMemory = {
+  lastSpeechByContext: {},
+  lastOpenerByContext: {},
+};
 
 const defaultCodeMap = {
   INTRO: "Introducao",
   HC: "Hora certa",
   CH: "Chamada da radio",
+  CAMP: "Campanha",
   COM: "Comercial",
   MUS: "Musica",
   VIN: "Vinheta",
@@ -66,7 +76,7 @@ const defaultCodeMap = {
   LOC: "Locucao",
 };
 
-const allowedGradeCodes = new Set(["INTRO", "MUS", "HC", "CH", "COM", "VIN", "ID", "LOC"]);
+const allowedGradeCodes = new Set(["INTRO", "MUS", "HC", "CH", "CAMP", "COM", "VIN", "ID", "LOC"]);
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -122,7 +132,7 @@ function eventTypeName(item) {
     return "programacao";
   }
   if (hasCode(item, ["COM"])) {
-    return "comercial";
+    return "retorno_comercial";
   }
   if (hasCode(item, ["MUS"])) {
     return "musica";
@@ -132,6 +142,9 @@ function eventTypeName(item) {
   }
   if (hasCode(item, ["HC"])) {
     return "hora_certa";
+  }
+  if (hasCode(item, ["CAMP"])) {
+    return "campanha";
   }
   if (hasCode(item, ["VIN"])) {
     return "vinheta";
@@ -145,53 +158,252 @@ function eventTypeName(item) {
   return "programacao";
 }
 
-function tomaTemplatesByPreviousType(data, previousType) {
-  const templates = {
-    comercial: [
-      `Voltamos do intervalo comercial na ${data.radioName}.`,
-      `A pausa comercial terminou. A ${data.radioName} segue com a programacao.`,
-      `Depois dos nossos parceiros, continuamos na ${data.frequency}.`,
-      `Fim do bloco comercial. A ${data.radioName} volta com a programacao.`,
-    ],
-    musica: [
-      `Na sequencia musical da ${data.radioName}, seguimos com mais programacao.`,
-      `Voce acabou de ouvir musica na ${data.radioName}. A programacao continua.`,
-      `A musica segue sendo companhia aqui na ${data.radioName}.`,
-      `Seguimos no clima do ${data.style}, aqui na ${data.frequency}.`,
-    ],
-    chamada: [
-      `Depois da chamada da ${data.radioName}, seguimos com a programacao.`,
-      `A marca da ${data.radioName} esta no ar. Agora a programacao continua.`,
-      `Voce esta na ${data.radioName}. Seguimos com a proxima atracao.`,
-    ],
-    hora_certa: [
-      `Hora certa informada. A programacao da ${data.radioName} continua.`,
-      `Depois da hora certa, seguimos na ${data.frequency}.`,
-      `Voce conferiu a hora certa na ${data.radioName}. A programacao segue.`,
-    ],
-    vinheta: [
-      `Depois da vinheta, a ${data.radioName} segue com voce.`,
-      `Identidade no ar. Agora a programacao continua na ${data.radioName}.`,
-      `A vinheta passou e a sequencia continua na ${data.frequency}.`,
-    ],
-    identificacao: [
-      `Identificacao feita. Seguimos com a programacao da ${data.radioName}.`,
-      `Voce esta na ${data.radioName}. A sequencia continua agora.`,
-      `Depois da identificacao, seguimos direto na ${data.frequency}.`,
-    ],
-    locucao: [
-      `Depois da locucao, a ${data.radioName} segue com a programacao.`,
-      `Recado dado. Agora continuamos com a sequencia da ${data.radioName}.`,
-      `A locucao passou e a programacao continua na ${data.frequency}.`,
-    ],
-    programacao: [
-      `A programacao da ${data.radioName} continua.`,
-      `Seguimos na ${data.radioName}, ${data.slogan}.`,
-      `A sequencia continua na ${data.frequency}.`,
-    ],
+function locutorIaTemplatesByContext(data, contextKey) {
+  const personality = data.locutorIaPersonality || "popular";
+  const templatesByPersonality = {
+    formal: {
+      retorno_comercial: [
+        `Encerrado o intervalo comercial, retomamos a programacao da ${data.radioName}.`,
+        `A pausa comercial chegou ao fim. Seguimos na ${data.frequency}.`,
+        `Concluido o bloco comercial, prosseguimos com a ${data.radioName}.`,
+      ],
+      hora_certa: [
+        `Hora certa informada. A programacao da ${data.radioName} prossegue.`,
+        `Conferida a hora certa, seguimos na ${data.frequency}.`,
+        `A hora certa foi ao ar e a sequencia continua.`,
+      ],
+      chamada: [
+        `A chamada da ${data.radioName} foi apresentada. Prosseguimos com a grade.`,
+        `Depois da chamada, seguimos com a programacao da ${data.radioName}.`,
+        `A marca da emissora segue no ar, agora com a proxima parte da sequencia.`,
+      ],
+      aviso: [
+        `Aviso registrado. A programacao da ${data.radioName} prossegue com atencao.`,
+        `Depois do aviso, seguimos na ${data.frequency}.`,
+        `A comunicacao foi ao ar e a sequencia continua.`,
+      ],
+      campanha: [
+        `Campanha em destaque. A ${data.radioName} segue com a mensagem no ar.`,
+        `A campanha foi apresentada e seguimos com a programacao.`,
+        `Depois da campanha, retomamos a sequencia da emissora.`,
+      ],
+      vinheta: [
+        `A vinheta foi executada. A programacao continua na ${data.radioName}.`,
+        `Depois da vinheta, damos sequencia a transmissao.`,
+        `Identidade da emissora apresentada. Seguimos adiante.`,
+      ],
+      identificacao: [
+        `A identificacao da ${data.radioName} foi concluida. Seguimos com a programacao.`,
+        `Voce permanece sintonizado na ${data.radioName}. A sequencia continua.`,
+        `Depois da identificacao, retomamos o fluxo normal da grade.`,
+      ],
+      locucao: [
+        `A locucao foi entregue e a programacao prossegue na ${data.radioName}.`,
+        `Recado apresentado. Seguimos com a sequencia planejada.`,
+        `Com a locucao concluida, continuamos a transmissao.`,
+      ],
+      programacao: [
+        `A programacao da ${data.radioName} continua.`,
+        `Seguimos com a transmissao da ${data.frequency}.`,
+        `A sequencia segue normalmente na ${data.radioName}.`,
+      ],
+    },
+    popular: {
+      retorno_comercial: [
+        `Fechou o comercial, agora seguimos na ${data.radioName}.`,
+        `Volta com a gente: a programacao ja retomou na ${data.frequency}.`,
+        `Terminou o intervalo e a ${data.radioName} continua no ar.`,
+      ],
+      hora_certa: [
+        `Hora certa na area. Bora seguir com a ${data.radioName}.`,
+        `Marcou a hora certa e ja seguimos na ${data.frequency}.`,
+        `A hora certa passou e a programacao continua.`,
+      ],
+      chamada: [
+        `Chamada dada, agora a ${data.radioName} segue com voce.`,
+        `A marca da casa foi ao ar e a programacao continua.`,
+        `Seguimos na ${data.radioName} com a proxima parte da grade.`,
+      ],
+      aviso: [
+        `Aviso na area e a programacao segue com voce.`,
+        `Depois do aviso, continuamos juntinho na ${data.frequency}.`,
+        `A comunicacao entrou e a sequencia continua.`,
+      ],
+      campanha: [
+        `Campanha no ar e a ${data.radioName} segue com a mensagem.`,
+        `A campanha foi ao ar e a programacao continua.`,
+        `Depois da campanha, seguimos com o que vem agora.`,
+      ],
+      vinheta: [
+        `Vinheta no ar e a ${data.radioName} segue firme.`,
+        `Passou a vinheta, bora continuar a sequencia.`,
+        `Identidade dada. Agora a programacao continua.`,
+      ],
+      identificacao: [
+        `Identificacao feita. Segue a ${data.radioName}.`,
+        `Voce ta com a gente na ${data.frequency}. Agora continua.`,
+        `A identidade da radio entrou e a sequencia segue.`,
+      ],
+      locucao: [
+        `Locucao entregue e a programacao segue.`,
+        `Recado na tela, agora volta a sequencia.`,
+        `Depois da locucao, seguimos com o que vem agora.`,
+      ],
+      programacao: [
+        `A programacao continua na ${data.radioName}.`,
+        `Seguimos juntos na ${data.frequency}.`,
+        `Bora seguir com a sequencia da ${data.radioName}.`,
+      ],
+    },
+    energetico: {
+      retorno_comercial: [
+        `Voltou com tudo! Acabou o comercial e a ${data.radioName} ja segue acelerando.`,
+        `Intervalo encerrado, e a energia da ${data.radioName} continua no alto!`,
+        `Agora sim, de volta com forca total na ${data.frequency}.`,
+      ],
+      hora_certa: [
+        `Hora certa cravada, e a ${data.radioName} nao desacelera!`,
+        `Marcamos o horario e ja seguimos com tudo na programacao.`,
+        `Depois da hora certa, a energia continua la em cima.`,
+      ],
+      chamada: [
+        `Chamou, chamou e a ${data.radioName} respondeu com energia!`,
+        `A marca entrou no ar e a sequencia segue pra frente.`,
+        `Segue o jogo na ${data.radioName}, porque agora vem mais.`,
+      ],
+      aviso: [
+        `Aviso dado, e a programacao segue no ritmo certo!`,
+        `Atencao redobrada e a ${data.radioName} continua no ar.`,
+        `Depois do aviso, seguimos com a energia la em cima.`,
+      ],
+      campanha: [
+        `Campanha no ar e a ${data.radioName} acelera junto!`,
+        `A mensagem entrou e a sequencia continua forte.`,
+        `Depois da campanha, seguimos em alta no ar.`,
+      ],
+      vinheta: [
+        `Vinheta no ar, energia renovada e a ${data.radioName} segue forte!`,
+        `Passou a identidade e agora a sequencia acelera de novo.`,
+        `A vinheta entrou e a programacao ganhou ritmo outra vez.`,
+      ],
+      identificacao: [
+        `Identificacao feita, e a ${data.radioName} continua com pegada total!`,
+        `Voce esta na ${data.radioName} e a energia segue alta.`,
+        `Depois da identificacao, a sequencia continua sem freio.`,
+      ],
+      locucao: [
+        `Locucao entregue, bora pra frente com a ${data.radioName}!`,
+        `Recado dado e a sequencia segue forte no ar.`,
+        `A fala entrou e a programacao acelera de novo.`,
+      ],
+      programacao: [
+        `A programacao segue em alta na ${data.radioName}!`,
+        `Seguimos com energia total na ${data.frequency}.`,
+        `Bora continuar a sequencia sem perder o ritmo.`,
+      ],
+    },
+    jovem: {
+      retorno_comercial: [
+        `Fechou o comercial e ja voltamos no clima da ${data.radioName}.`,
+        `Pausa rapidinha, agora a vibe segue na ${data.frequency}.`,
+        `Terminou o intervalo e a programacao ja ta de volta.`,
+      ],
+      hora_certa: [
+        `Hora certa na area e a vibe continua na ${data.radioName}.`,
+        `Marcou o horario e a programacao segue de boa.`,
+        `Depois da hora certa, seguimos com o fluxo.`,
+      ],
+      chamada: [
+        `Chamou a radio, chamou a vibe. Bora seguir.`,
+        `A chamada entrou e agora vem mais da ${data.radioName}.`,
+        `Seguimos no ar com a proxima parte da sequencia.`,
+      ],
+      aviso: [
+        `Aviso rapido e a vibe segue tranquila.`,
+        `A comunicacao entrou e a sequencia continua.`,
+        `Depois do aviso, bora pra proxima parte.`,
+      ],
+      campanha: [
+        `Campanha na area e a vibe continua legal demais.`,
+        `A mensagem entrou e a programacao segue suave.`,
+        `Depois da campanha, seguimos com tudo no ar.`,
+      ],
+      vinheta: [
+        `Vinheta no ar e a vibe segue em frente.`,
+        `Passou a identidade e a sequencia continua.`,
+        `Depois da vinheta, bora continuar a programacao.`,
+      ],
+      identificacao: [
+        `Identificacao feita e voce segue com a ${data.radioName}.`,
+        `Ta na sintonia certa, agora continua a sequencia.`,
+        `A identidade entrou e a programacao segue firme.`,
+      ],
+      locucao: [
+        `Locucao entregue e a vibe segue agora.`,
+        `Recado dado, bora pra sequencia seguinte.`,
+        `A fala entrou e seguimos com tudo no ar.`,
+      ],
+      programacao: [
+        `A programacao continua na ${data.radioName}.`,
+        `Seguimos juntos na ${data.frequency}.`,
+        `Bora continuar a sequencia da ${data.radioName}.`,
+      ],
+    },
   };
 
-  return templates[previousType] || templates.programacao;
+  const templates = templatesByPersonality[personality] || templatesByPersonality.popular;
+  return templates[contextKey] || templates.programacao;
+}
+
+function locutorIaPersonalityLabel(personality) {
+  const labels = {
+    formal: "Formal",
+    popular: "Popular",
+    energetico: "Energetico",
+    jovem: "Jovem",
+  };
+  return labels[personality] || labels.popular;
+}
+
+function locutorIaOpenersByContext(data, contextKey) {
+  const personality = data.locutorIaPersonality || "popular";
+  const openerBank = {
+    formal: {
+      retorno_comercial: ["Voltamos ao vivo:", "De volta com a programacao:", "Retomamos a transmissao:"],
+      hora_certa: ["Agora, a hora certa:", "Neste momento:", "Atualizando o horario:"],
+      chamada: ["Na sequencia da emissora:", "A chamada continua:", "Seguimos com a radio:"],
+      aviso: ["Atenção:", "Comunicado importante:", "Informacao rapida:"],
+      campanha: ["Em destaque:", "Campanha no ar:", "Seguimos com a campanha:"],
+      programacao: ["Seguimos em frente:", "A programacao continua:", "Na sequencia:"],
+    },
+    popular: {
+      retorno_comercial: ["Voltamos agora:", "De volta com voce:", "Seguimos juntos:"],
+      hora_certa: ["Hora certa na area:", "Agora sao:", "Bora conferir o horario:"],
+      chamada: ["Na sintonia da casa:", "Seguimos com a chamada:", "A radio chama:"],
+      aviso: ["Olha so:", "Aviso rapidinho:", "Fica ligado:"],
+      campanha: ["Campanha na area:", "Olha a campanha:", "Na sequencia da campanha:"],
+      programacao: ["Seguimos agora:", "A programacao continua:", "Bora pra frente:"],
+    },
+    energetico: {
+      retorno_comercial: ["Voltamos com tudo:", "De volta no ar:", "Agora sim, seguimos forte:"],
+      hora_certa: ["Hora certa cravada:", "Agora sao:", "Marca o relogio:"],
+      chamada: ["Bora seguir:", "Na batida da radio:", "Chamada no ar:"],
+      aviso: ["Atencao total:", "Recado rapido:", "Fica esperto:"],
+      campanha: ["Campanha em alta:", "Olha a campanha:", "Seguimos acelerando:"],
+      programacao: ["Seguimos forte:", "A programacao acelera:", "Bora continuar:"],
+    },
+    jovem: {
+      retorno_comercial: ["Voltamos rapidinho:", "De volta na vibe:", "Seguimos no fluxo:"],
+      hora_certa: ["Agora sao:", "Hora certa na pista:", "Bora ver o horario:"],
+      chamada: ["Na sintonia certa:", "A chamada segue:", "Seguimos no clima:"],
+      aviso: ["Ei, olha isso:", "Aviso na tela:", "Fica de olho:"],
+      campanha: ["Campanha rolando:", "Olha a campanha:", "Na vibe da campanha:"],
+      programacao: ["Seguimos agora:", "Bora continuar:", "A sequencia segue:"],
+    },
+  };
+
+  const openerSet = openerBank[personality] || openerBank.popular;
+  return openerSet[contextKey] || openerSet.programacao;
 }
 
 function randomSpeechWithoutImmediateRepeat(options, lastSpeech) {
@@ -199,23 +411,45 @@ function randomSpeechWithoutImmediateRepeat(options, lastSpeech) {
     return "";
   }
 
-  const available = options.length > 1 ? options.filter((option) => option !== lastSpeech) : options;
-  return available[Math.floor(Math.random() * available.length)];
+  const normalizedLastSpeech = String(lastSpeech || "").trim();
+  const available = options.length > 1 ? options.filter((option) => String(option || "").trim() !== normalizedLastSpeech) : options;
+  const pool = available.length ? available : options;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
-function previousRealItemForCurrent() {
-  const current = runnerState.items[runnerState.currentIndex];
-  const currentIndex = runnerState.items.findIndex((item) => item.id === current?.id);
-  for (let index = currentIndex - 1; index >= 0; index -= 1) {
-    return runnerState.items[index];
+function locutorIaContextForItem(item, previousItem = null) {
+  if (hasCode(item, ["HC"])) {
+    return "hora_certa";
   }
-  return null;
+  if (hasCode(item, ["CH"])) {
+    return "chamada";
+  }
+  if (hasCode(item, ["CAMP"])) {
+    return "campanha";
+  }
+  if (hasCode(item, ["LOC"])) {
+    return "aviso";
+  }
+  if (item?.type === "campanha") {
+    return "campanha";
+  }
+  if (previousItem && hasCode(previousItem, ["COM"])) {
+    return "retorno_comercial";
+  }
+  return "programacao";
 }
 
-function generateTomaSpeech(data, previousItem) {
-  const previousType = eventTypeName(previousItem);
-  const speech = randomSpeechWithoutImmediateRepeat(tomaTemplatesByPreviousType(data, previousType), lastTomaSpeech);
-  lastTomaSpeech = speech;
+function generateLocutorIaSpeech(data, previousItem, contextKey = null) {
+  const resolvedContext = contextKey || locutorIaContextForItem(null, previousItem);
+  const openers = locutorIaOpenersByContext(data, resolvedContext);
+  const bodies = locutorIaTemplatesByContext(data, resolvedContext);
+  const lastSpeech = locutorIaMemory.lastSpeechByContext[resolvedContext] || "";
+  const lastOpener = locutorIaMemory.lastOpenerByContext[resolvedContext] || "";
+  const opener = randomSpeechWithoutImmediateRepeat(openers, lastOpener);
+  const speechBodies = randomSpeechWithoutImmediateRepeat(bodies, lastSpeech);
+  const speech = `${opener} ${speechBodies}`.trim();
+  locutorIaMemory.lastOpenerByContext[resolvedContext] = opener;
+  locutorIaMemory.lastSpeechByContext[resolvedContext] = speech;
   return speech;
 }
 
@@ -248,6 +482,7 @@ function getFormData() {
     frequency: form.get("frequency") || "",
     slogan: form.get("slogan") || "",
     style: form.get("style") || "",
+    locutorIaPersonality: form.get("locutorIaPersonality") || "popular",
     contentType: form.get("contentType") || "Hora certa",
   };
 }
@@ -260,12 +495,13 @@ function getRadioContext() {
     frequency: data.frequency.trim() || "sua frequencia",
     slogan: data.slogan.trim() || "a sua melhor companhia",
     style: data.style.trim() || "estilo da programacao",
+    locutorIaPersonality: data.locutorIaPersonality,
     contentType: data.contentType,
   };
 }
 
 function validateRadioData(data) {
-  if (!data.radioName || !data.city || !data.frequency || !data.slogan || !data.style) {
+  if (!data.radioName || !data.city || !data.frequency || !data.slogan || !data.style || !data.locutorIaPersonality) {
     $("#xavierForm").reportValidity();
     notify("Preencha os dados da radio antes de testar.");
     return false;
@@ -599,41 +835,274 @@ function parseGrade(text, codeMap) {
     .map((line, index) => parseGradeLine(line, index, codeMap));
 }
 
-function createTomaCue(lastCommercial, nextItem, radio) {
-  const delaySeconds = 1;
-  const durationSeconds = 6;
-  const commercialEnd = typeof lastCommercial.endSeconds === "number" ? lastCommercial.endSeconds : timeToSeconds(nextItem.time);
-  const nextStart = typeof nextItem.startSeconds === "number" ? nextItem.startSeconds : timeToSeconds(nextItem.time);
-  const cueStart = commercialEnd === null ? null : commercialEnd + delaySeconds;
-  const safeToInsert = cueStart !== null && nextStart !== null && cueStart + durationSeconds <= nextStart;
-  const speech = randomSpeechWithoutImmediateRepeat(tomaTemplatesByPreviousType(radio, "comercial"), lastTomaSpeech);
-  lastTomaSpeech = speech;
+function summarizeTimelineItem(item) {
+  if (!item) {
+    return null;
+  }
 
   return {
-    id: `TOMA-${lastCommercial.id}`,
-    afterItemId: lastCommercial.id,
-    beforeItemId: nextItem.id,
-    time: nextItem.time,
-    cueStart,
-    delaySeconds,
-    durationSeconds,
-    safeToInsert,
-    speech,
-    source: "xavier",
+    id: item.id,
+    time: item.time || "",
+    code: item.code || "",
+    description: item.description || "",
+    title: item.title || "",
+    raw: item.raw || "",
   };
 }
 
-function createTomaCues(items, radio) {
+function summarizeQueueItem(item) {
+  if (!item) {
+    return null;
+  }
+
+  return {
+    id: item.id,
+    kind: item.kind || "programacao",
+    time: item.time || "",
+    code: item.code || "",
+    title: item.title || "",
+    description: item.description || "",
+    raw: item.raw || "",
+    durationSeconds: item.durationSeconds || 0,
+  };
+}
+
+function estimateLocutorIaAudioDurationMs(text, contextKey) {
+  const content = String(text || "").trim();
+  const wordCount = content ? content.split(/\s+/).filter(Boolean).length : 0;
+  const baseDuration = 900;
+  const textFactor = content.length * 28;
+  const wordFactor = wordCount * 95;
+  const contextFactor = contextKey === "retorno_comercial" ? 1.05 : 1;
+  const estimated = Math.round((baseDuration + textFactor + wordFactor) * contextFactor);
+  return Math.max(1200, Math.min(9000, estimated));
+}
+
+function getAudioQueueJob(cueId) {
+  return audioQueue.find((job) => job.cueId === cueId || job.id === cueId) || null;
+}
+
+function updateLocutorIaArtifacts(cueId, updates) {
+  const job = getAudioQueueJob(cueId);
+  if (job) {
+    Object.assign(job, updates);
+  }
+
+  const queueEvent = runnerState.eventQueue.find((entry) => entry?.id === cueId) || null;
+  if (queueEvent) {
+    Object.assign(queueEvent, updates);
+  }
+
+  if (runnerState.locutorIaPlayback?.cueId === cueId) {
+    Object.assign(runnerState.locutorIaPlayback, updates);
+  }
+}
+
+function clearAudioQueueTimers() {
+  audioQueue.forEach((job) => {
+    if (job.timer) {
+      clearTimeout(job.timer);
+      job.timer = null;
+    }
+  });
+}
+
+function resetAudioQueueProcessing() {
+  audioQueue.forEach((job) => {
+    if (job.status === "processing") {
+      job.generationRevision = (job.generationRevision || 0) + 1;
+      job.status = "pending";
+      job.ready = false;
+      job.progress = 0;
+      job.startedAt = null;
+      job.completedAt = null;
+      job.audioPath = null;
+      job.audioUrl = null;
+      job.provider = null;
+      job.result = null;
+      if (job.timer) {
+        clearTimeout(job.timer);
+        job.timer = null;
+      }
+    }
+  });
+}
+
+function createLocutorIaCue(lastCommercial, nextItem, radio) {
+  const delaySeconds = 1;
+  const commercialEnd = typeof lastCommercial.endSeconds === "number" ? lastCommercial.endSeconds : timeToSeconds(nextItem.time);
+  const nextStart = typeof nextItem.startSeconds === "number" ? nextItem.startSeconds : timeToSeconds(nextItem.time);
+  const cueStart = commercialEnd === null ? null : commercialEnd + delaySeconds;
+  const safeToInsert = true;
+  const contextKey = "retorno_comercial";
+  const speech = generateLocutorIaSpeech(radio, lastCommercial, contextKey);
+  const generatedAt = new Date().toISOString();
+  const previousEvent = summarizeTimelineItem(lastCommercial);
+  const nextEvent = summarizeTimelineItem(nextItem);
+  const processingMs = estimateLocutorIaAudioDurationMs(speech, contextKey);
+  const processingSeconds = Math.max(1, Math.ceil(processingMs / 1000));
+
+  return {
+    id: `LOCUTORIA-${lastCommercial.id}`,
+    afterItemId: lastCommercial.id,
+    beforeItemId: nextItem.id,
+    time: nextItem.time,
+    contextKey,
+    personality: radio.locutorIaPersonality || "popular",
+    cueStart,
+    delaySeconds,
+    processingMs,
+    durationSeconds: processingSeconds,
+    safeToInsert,
+    speech,
+    source: "xavier",
+    generatedAt,
+    previousEvent,
+    nextEvent,
+    audioPath: null,
+    audioUrl: null,
+  };
+}
+
+function createLocutorIaCues(items, radio) {
   const cues = [];
 
+  for (let index = 0; index < items.length; index += 1) {
+    const item = items[index];
+    if (!hasCode(item, ["COM"])) {
+      continue;
+    }
+
+    let lastCommercial = item;
+    let cursor = index + 1;
+    while (cursor < items.length && hasCode(items[cursor], ["COM"])) {
+      lastCommercial = items[cursor];
+      cursor += 1;
+    }
+
+    const next = items[cursor];
+    if (next && !hasCode(next, ["COM"])) {
+      const cue = createLocutorIaCue(lastCommercial, next, radio);
+      cues.push(cue);
+      const audioJob = {
+        id: cue.id,
+        cueId: cue.id,
+        type: "locutorIa",
+        status: "pending",
+        source: "xavier",
+        generatedAt: cue.generatedAt,
+        texto: cue.speech,
+        contexto: cue.contextKey,
+        estilo: cue.personality,
+        horario: cue.time,
+        eventoAnterior: cue.previousEvent,
+        proximoEvento: cue.nextEvent,
+        ready: false,
+        progress: 0,
+        estimatedProcessingMs: cue.processingMs,
+        startedAt: null,
+        completedAt: null,
+        timer: null,
+        result: null,
+        audioPath: null,
+        audioUrl: null,
+        provider: null,
+        generationRevision: 0,
+      };
+      audioQueue.push(audioJob);
+    }
+
+    index = cursor - 1;
+  }
+
+  return cues;
+}
+
+function buildEventQueue(items, locutorIaCues, radio) {
+  const queue = [];
+  const cueByAfterItemId = new Map(locutorIaCues.map((cue) => [cue.afterItemId, cue]));
+
+  let cursor = 0;
   items.forEach((item, index) => {
-    const next = items[index + 1];
-    if (hasCode(item, ["COM"]) && next && !hasCode(next, ["COM"]) && hasCode(next, ["MUS"])) {
-      cues.push(createTomaCue(item, next, radio));
+    const nextItem = items[index + 1] || null;
+    const durationSeconds = item.durationSeconds || getEventDurationByCode(item);
+    const baseEvent = {
+      ...item,
+      kind: "programacao",
+      startSeconds: cursor,
+      endSeconds: cursor + durationSeconds,
+      durationSeconds,
+      nextEventId: nextItem?.id || null,
+    };
+    queue.push(baseEvent);
+    cursor = baseEvent.endSeconds;
+
+    const cue = cueByAfterItemId.get(item.id);
+    if (cue) {
+      const locutorStart = cursor + Number(cue.delaySeconds || 1);
+      const locutorEnd = locutorStart + Number(cue.durationSeconds || 6);
+      const locutorIaEvent = {
+        id: cue.id,
+        kind: "locutorIa",
+        code: "LOCUTORIA",
+        time: cue.time,
+        title: "LocutorIA",
+        description: "Retorno do locutor",
+        raw: cue.speech,
+        startSeconds: locutorStart,
+        endSeconds: locutorEnd,
+        durationSeconds: cue.durationSeconds,
+        sourceItemId: item.id,
+        nextEventId: nextItem?.id || null,
+        contextKey: cue.contextKey,
+        personality: cue.personality,
+        speech: cue.speech,
+        generatedAt: cue.generatedAt,
+        previousEvent: cue.previousEvent,
+        nextEvent: cue.nextEvent,
+        safeToInsert: cue.safeToInsert,
+        ready: false,
+        audioPath: null,
+        audioUrl: null,
+      };
+      queue.push(locutorIaEvent);
+      cursor = locutorEnd;
     }
   });
 
-  return cues;
+  const cycleSeconds = cursor;
+  return { queue, cycleSeconds };
+}
+
+function getEventDurationByCode(item) {
+  if (!item) {
+    return 60;
+  }
+  if (hasCode(item, ["MUS"])) {
+    return 180;
+  }
+  if (hasCode(item, ["COM"])) {
+    return 30;
+  }
+  if (hasCode(item, ["CH"])) {
+    return 12;
+  }
+  if (hasCode(item, ["HC"])) {
+    return 8;
+  }
+  if (hasCode(item, ["CAMP"])) {
+    return 20;
+  }
+  if (hasCode(item, ["VIN"])) {
+    return 5;
+  }
+  if (hasCode(item, ["ID"])) {
+    return 6;
+  }
+  if (hasCode(item, ["LOC"])) {
+    return 10;
+  }
+  return 60;
 }
 
 function prepareRuntimeTimeline(items) {
@@ -641,10 +1110,7 @@ function prepareRuntimeTimeline(items) {
   return items.map((item, index) => {
     const explicitStart = timeToSeconds(item.time);
     const startSeconds = explicitStart !== null ? Math.max(explicitStart, cursor) : cursor;
-    const nextExplicitStart = timeToSeconds(items[index + 1]?.time);
-    const durationSeconds = item.durationSeconds || (
-      nextExplicitStart !== null && nextExplicitStart > startSeconds ? nextExplicitStart - startSeconds : 180
-    );
+    const durationSeconds = item.durationSeconds || getEventDurationByCode(item);
     const runtimeItem = {
       ...item,
       startSeconds,
@@ -1173,33 +1639,42 @@ function setRunnerStatus(status) {
 
 function renderCurrentProgramEvent() {
   const box = $("#currentProgramEvent");
-  const item = runnerState.items[runnerState.currentIndex];
+  const item = runnerState.eventQueue[runnerState.currentIndex] || runnerState.items[runnerState.currentIndex];
   if (!item) {
     box.innerHTML = '<p class="emptyState">Analise a GRADE e clique em Iniciar para simular a programacao.</p>';
     setRunnerStatus("parado");
     return;
   }
 
-  const alerts = groupAlertsByItem(runnerState.alerts)[item.id] || [];
-  const currentLabel = hasCode(item, ["COM"]) ? "Comercial tocando" : "Agora tocando";
+  const sourceId = item.kind === "locutorIa" ? item.sourceItemId : item.id;
+  const alerts = sourceId ? groupAlertsByItem(runnerState.alerts)[sourceId] || [] : [];
+  const currentLabel = item.kind === "locutorIa"
+    ? "LocutorIA ativo"
+    : hasCode(item, ["COM"])
+      ? "Comercial tocando"
+      : "Agora tocando";
+  const duration = eventDurationSeconds(runnerState.currentIndex);
+  const remaining = remainingSecondsForCurrent();
   box.innerHTML = `
     <article class="currentEventCard ${timelineClass(alerts)}">
       <div>
         <span>${escapeHtml(currentLabel)}</span>
-        <strong>${escapeHtml(item.time || `#${item.id}`)} - ${escapeHtml(item.description)}</strong>
+        <strong>${escapeHtml(item.time || `#${item.id}`)} - ${escapeHtml(item.description || item.title || "Evento")}</strong>
       </div>
-      <p>${escapeHtml(item.title || item.raw)}</p>
+      <p>${escapeHtml(item.title || item.raw || item.speech || "")}</p>
       <small>${escapeHtml(item.code || "SEM CODIGO")} | item ${item.id} de ${runnerState.items.length}</small>
+      <small>Duracao: ${escapeHtml(formatDuration(duration))} | Restante: ${escapeHtml(formatDuration(remaining))}</small>
     </article>
   `;
   renderNextProgramEvent();
   renderRemainingTime();
   renderEventSpeech(item);
+  refreshRunnerStatus();
 }
 
 function renderNextProgramEvent() {
   const box = $("#nextProgramEvent");
-  const next = runnerState.items[runnerState.currentIndex + 1];
+  const next = runnerState.eventQueue[runnerState.currentIndex + 1] || runnerState.items[runnerState.currentIndex + 1];
   if (!next) {
     box.innerHTML = '<p class="emptyState">Nao ha proximo evento na grade analisada.</p>';
     return;
@@ -1207,19 +1682,20 @@ function renderNextProgramEvent() {
 
   box.innerHTML = `
     <article class="nextEventCard">
-      <span>Proximo evento do MAPA</span>
-      <strong>${escapeHtml(next.time || `#${next.id}`)} - ${escapeHtml(next.description)}</strong>
-      <p>${escapeHtml(next.title || next.raw)}</p>
+      <span>Proximo evento da fila</span>
+      <strong>${escapeHtml(next.time || `#${next.id}`)} - ${escapeHtml(next.description || next.title || "Evento")}</strong>
+      <p>${escapeHtml(next.title || next.raw || next.speech || "")}</p>
+      <small>Duracao estimada: ${escapeHtml(formatDuration(eventDurationSeconds(runnerState.currentIndex + 1)))}</small>
     </article>
   `;
 }
 
 function eventDurationSeconds(index) {
-  const item = runnerState.items[index];
+  const item = runnerState.eventQueue[index] || runnerState.items[index];
   if (item?.durationSeconds) {
     return item.durationSeconds;
   }
-  const next = runnerState.items[index + 1];
+  const next = runnerState.eventQueue[index + 1] || runnerState.items[index + 1];
   const itemSeconds = timeToSeconds(item?.time);
   const nextSeconds = timeToSeconds(next?.time);
 
@@ -1231,7 +1707,12 @@ function eventDurationSeconds(index) {
 }
 
 function remainingSecondsForCurrent() {
-  const item = runnerState.items[runnerState.currentIndex];
+  const item = runnerState.eventQueue[runnerState.currentIndex] || runnerState.items[runnerState.currentIndex];
+  const playback = currentLocutorIaPlaybackForItem(item);
+
+  if (playback?.endsAtSeconds) {
+    return Math.max(0, playback.endsAtSeconds - currentClockSeconds());
+  }
 
   if (runnerState.realtime && typeof item?.endSeconds === "number") {
     return Math.max(0, item.endSeconds - currentClockSeconds());
@@ -1242,7 +1723,7 @@ function remainingSecondsForCurrent() {
 
 function renderRemainingTime() {
   const box = $("#remainingTimeBox");
-  const item = runnerState.items[runnerState.currentIndex];
+  const item = runnerState.eventQueue[runnerState.currentIndex] || runnerState.items[runnerState.currentIndex];
   if (!item) {
     box.innerHTML = '<p class="emptyState">O tempo restante aparece aqui durante a simulacao.</p>';
     return;
@@ -1250,7 +1731,7 @@ function renderRemainingTime() {
 
   const duration = eventDurationSeconds(runnerState.currentIndex);
   const remaining = remainingSecondsForCurrent();
-  const label = hasCode(item, ["COM"]) ? "Tempo restante do comercial" : "Tempo restante";
+  const label = item.kind === "locutorIa" ? "Tempo restante do LocutorIA" : hasCode(item, ["COM"]) ? "Tempo restante do comercial" : "Tempo restante";
   box.innerHTML = `
     <article class="remainingTimeCard">
       <span>${escapeHtml(label)}</span>
@@ -1267,6 +1748,9 @@ function speechNeuronForItem(item) {
   if (hasCode(item, ["CH"])) {
     return "chamada";
   }
+  if (hasCode(item, ["CAMP"])) {
+    return "campanha";
+  }
   if (hasCode(item, ["COM"])) {
     return "comercial";
   }
@@ -1276,25 +1760,357 @@ function speechNeuronForItem(item) {
   return "";
 }
 
-function tomaCueForCurrentItem(item) {
-  return runnerState.tomaCues.find((cue) => cue.afterItemId === item?.id) || null;
+const locutorIaSpeechContexts = new Set(["hora_certa", "chamada", "aviso", "campanha"]);
+
+function locutorIaCueForCurrentItem(item) {
+  return runnerState.locutorIaCues.find((cue) => cue.afterItemId === item?.id) || null;
+}
+
+function clearLocutorIaPlayback() {
+  if (runnerState.locutorIaPlayback?.waitTimer) {
+    clearTimeout(runnerState.locutorIaPlayback.waitTimer);
+  }
+  if (runnerState.locutorIaPlayback?.speakTimer) {
+    clearTimeout(runnerState.locutorIaPlayback.speakTimer);
+  }
+  if (runnerState.locutorIaPlayback?.endTimer) {
+    clearTimeout(runnerState.locutorIaPlayback.endTimer);
+  }
+  runnerState.locutorIaPlayback = null;
+}
+
+function currentLocutorIaPlaybackForItem(item) {
+  const cue = item?.kind === "locutorIa" ? item : locutorIaCueForCurrentItem(item);
+  if (!cue || !runnerState.locutorIaPlayback || runnerState.locutorIaPlayback.cueId !== cue.id) {
+    return null;
+  }
+  return runnerState.locutorIaPlayback;
+}
+
+function renderAudioQueueStatus() {
+  const box = $("#audioQueueBox");
+  if (!box) {
+    return;
+  }
+
+  if (!audioQueue.length) {
+    box.innerHTML = '<p class="emptyState">A fila de audio aparece aqui quando o LocutorIA preparar falas.</p>';
+    return;
+  }
+
+  const counts = audioQueue.reduce(
+    (acc, job) => {
+      acc[job.status] = (acc[job.status] || 0) + 1;
+      return acc;
+    },
+    { pending: 0, processing: 0, done: 0 }
+  );
+
+  box.innerHTML = `
+    <article class="audioQueueSummary">
+      <span>audioQueue</span>
+      <strong>${escapeHtml(String(audioQueue.length))} jobs</strong>
+      <p>Pendente: ${escapeHtml(String(counts.pending || 0))} | Processando: ${escapeHtml(String(counts.processing || 0))} | Pronto: ${escapeHtml(String(counts.done || 0))}</p>
+    </article>
+    <div class="audioQueueList">
+      ${audioQueue
+        .slice(0, 8)
+        .map((job) => {
+          const jobLabel = job.status === "processing" ? "Processando" : job.status === "done" ? "Pronto" : "Pendente";
+          const payload = job.texto || "";
+          return `
+            <article class="audioQueueItem queue-${escapeHtml(job.status)}">
+              <div class="cardTop">
+                <span>${escapeHtml(jobLabel)}</span>
+                <span>${escapeHtml(job.contexto || "programacao")} | ${escapeHtml(job.estilo || "popular")}</span>
+              </div>
+              <p>${escapeHtml(payload)}</p>
+              <small>${escapeHtml(job.horario || "")} | ${escapeHtml(job.eventoAnterior?.title || job.eventoAnterior?.description || "")} -> ${escapeHtml(job.proximoEvento?.title || job.proximoEvento?.description || "")}</small>
+              <small>${escapeHtml(job.audioPath || "audio pendente")}</small>
+            </article>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+async function generateAudio(job, cue) {
+  const payload = {
+    job_id: job.id,
+    texto: job.texto || cue?.speech || "",
+    contexto: job.contexto || cue?.contextKey || "programacao",
+    estilo: job.estilo || cue?.personality || "popular",
+    horario: job.horario || cue?.time || "",
+    evento_anterior: job.eventoAnterior || cue?.previousEvent || null,
+    proximo_evento: job.proximoEvento || cue?.nextEvent || null,
+    provider: "mock",
+  };
+
+  const response = await fetch("/xavier/audio/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text();
+    throw new Error(`Falha ao gerar audio: ${response.status} ${detail}`);
+  }
+
+  return response.json();
+}
+
+async function gerarAudio(job, cue) {
+  return generateAudio(job, cue);
+}
+
+function refreshRunnerStatus() {
+  const item = runnerState.eventQueue[runnerState.currentIndex] || runnerState.items[runnerState.currentIndex];
+  const playback = currentLocutorIaPlaybackForItem(item);
+  if (playback?.phase === "waiting") {
+    setRunnerStatus("LocutorIA ativo");
+    return;
+  }
+  if (playback?.phase === "processing") {
+    setRunnerStatus("LocutorIA processando");
+    return;
+  }
+  if (playback?.phase === "showing") {
+    setRunnerStatus("LocutorIA no ar");
+    return;
+  }
+  if (!runnerState.eventQueue.length) {
+    setRunnerStatus("parado");
+    return;
+  }
+  setRunnerStatus(runnerState.running ? "tempo real" : "parado");
+}
+
+function scheduleLocutorIaPlayback(cue, item) {
+  if (!cue || !item) {
+    return null;
+  }
+
+  const job = getAudioQueueJob(cue.id);
+  if (job?.status === "done" && job.ready) {
+    const donePlayback = runnerState.locutorIaPlayback?.cueId === cue.id
+      ? runnerState.locutorIaPlayback
+      : {
+          cueId: cue.id,
+          afterItemId: cue.afterItemId,
+          phase: "done",
+          speech: cue.speech,
+          endsAtSeconds: currentClockSeconds(),
+          waitTimer: null,
+          speakTimer: null,
+          endTimer: null,
+          audioPath: job.audioPath || cue.audioPath || null,
+          audioUrl: job.audioUrl || cue.audioUrl || null,
+      };
+    donePlayback.phase = "done";
+    donePlayback.audioPath = job.audioPath || cue.audioPath || null;
+    donePlayback.audioUrl = job.audioUrl || cue.audioUrl || null;
+    runnerState.locutorIaPlayback = donePlayback;
+    return donePlayback;
+  }
+
+  if (runnerState.locutorIaPlayback?.cueId === cue.id && job?.status === "processing") {
+    runnerState.locutorIaPlayback.phase = "processing";
+    return runnerState.locutorIaPlayback;
+  }
+
+  clearLocutorIaPlayback();
+
+  const processingMs = job?.estimatedProcessingMs || cue.processingMs || estimateLocutorIaAudioDurationMs(cue.speech, cue.contextKey);
+  const processingSeconds = Math.max(1, Math.ceil(processingMs / 1000));
+  const generationRevision = (job?.generationRevision || 0) + 1;
+
+  const playback = {
+    cueId: cue.id,
+    afterItemId: cue.afterItemId,
+    phase: "processing",
+    speech: cue.speech,
+    endsAtSeconds: currentClockSeconds() + processingSeconds,
+    waitTimer: null,
+    speakTimer: null,
+    endTimer: null,
+    audioPath: job?.audioPath || cue.audioPath || null,
+    audioUrl: job?.audioUrl || cue.audioUrl || null,
+  };
+  runnerState.locutorIaPlayback = playback;
+  if (job) {
+    job.status = "processing";
+    job.ready = false;
+    job.progress = 0;
+    job.startedAt = new Date().toISOString();
+    job.completedAt = null;
+    job.estimatedProcessingMs = processingMs;
+    job.generationRevision = generationRevision;
+    if (job.timer) {
+      clearTimeout(job.timer);
+    }
+    job.audioPath = null;
+    job.audioUrl = null;
+    job.result = null;
+    job.provider = null;
+    job.timer = setTimeout(() => {
+      const expectedRevision = generationRevision;
+      if (job.status !== "processing" || job.generationRevision !== expectedRevision) {
+        return;
+      }
+
+      (async () => {
+        try {
+          const result = await gerarAudio(job, cue);
+          if (job.generationRevision !== expectedRevision) {
+            return;
+          }
+          updateLocutorIaArtifacts(cue.id, {
+            status: "done",
+            ready: Boolean(result.ready !== false),
+            progress: 100,
+            completedAt: new Date().toISOString(),
+            timer: null,
+            audioPath: result.audioPath || result.audioFile || null,
+            audioUrl: result.audioPath || result.audioFile || null,
+            provider: result.provider || "mock",
+            result,
+          });
+          if (runnerState.locutorIaPlayback?.cueId === cue.id) {
+            runnerState.locutorIaPlayback.phase = "done";
+            runnerState.locutorIaPlayback.audioPath = result.audioPath || result.audioFile || null;
+            runnerState.locutorIaPlayback.audioUrl = result.audioPath || result.audioFile || null;
+            runnerState.locutorIaPlayback.endTimer = null;
+          }
+          refreshRunnerStatus();
+          renderAudioQueueStatus();
+          renderCurrentProgramEvent();
+        } catch (error) {
+          if (job.generationRevision !== expectedRevision) {
+            return;
+          }
+          updateLocutorIaArtifacts(cue.id, {
+            status: "pending",
+            ready: false,
+            progress: 0,
+            completedAt: null,
+            timer: null,
+            result: { error: String(error) },
+          });
+          if (runnerState.locutorIaPlayback?.cueId === cue.id) {
+            runnerState.locutorIaPlayback.phase = "processing";
+          }
+          refreshRunnerStatus();
+          renderAudioQueueStatus();
+        }
+      })();
+    }, processingMs);
+    renderAudioQueueStatus();
+  }
+
+  return playback;
+}
+
+function getLoopElapsedSeconds() {
+  const cycle = runnerState.queueCycleSeconds || 0;
+  if (!cycle) {
+    return currentClockSeconds();
+  }
+  if (runnerState.loopAnchorSeconds === null) {
+    return currentClockSeconds() % cycle;
+  }
+  const elapsed = currentClockSeconds() - runnerState.loopAnchorSeconds;
+  return ((elapsed % cycle) + cycle) % cycle;
+}
+
+function findCurrentQueueIndexByClock(queue) {
+  if (!queue.length) {
+    return 0;
+  }
+
+  const nowSeconds = getLoopElapsedSeconds();
+  let currentIndex = 0;
+
+  queue.forEach((item, index) => {
+    const itemStart = typeof item.startSeconds === "number" ? item.startSeconds : 0;
+    const itemEnd = typeof item.endSeconds === "number" ? item.endSeconds : null;
+    if (itemStart <= nowSeconds) {
+      currentIndex = index;
+    }
+    if (itemStart <= nowSeconds && itemEnd !== null && nowSeconds < itemEnd) {
+      currentIndex = index;
+    }
+  });
+
+  return currentIndex;
 }
 
 function renderEventSpeech(item) {
   const box = $("#eventSpeechBox");
-  const tomaCue = tomaCueForCurrentItem(item);
-  if (tomaCue) {
+  const radio = getRadioContext();
+  const isLocutorIaEvent = item?.kind === "locutorIa";
+  const locutorIaCue = isLocutorIaEvent ? item : locutorIaCueForCurrentItem(item);
+  if (locutorIaCue) {
+    const audioJob = audioQueue.find((entry) => entry.id === locutorIaCue.id) || null;
+    if (!isLocutorIaEvent) {
+      box.innerHTML = `
+        <article class="speechCard">
+          <span>LocutorIA preparado pelo Xavier</span>
+          <p>Retorno planejado apos o comercial.</p>
+          <small>Personalidade: ${escapeHtml(locutorIaPersonalityLabel(locutorIaCue.personality || radio.locutorIaPersonality))}</small>
+          <small>Fila de audio: ${escapeHtml(audioJob ? audioJob.status : "pendente")}</small>
+          <small>O processamento executa quando o evento LocutorIA entrar na fila.</small>
+        </article>
+      `;
+      renderAudioQueueStatus();
+      return;
+    }
+
+    const playback = currentLocutorIaPlaybackForItem(item) || scheduleLocutorIaPlayback(locutorIaCue, item);
+    if (playback?.phase === "processing") {
+      box.innerHTML = `
+        <article class="speechCard">
+          <span>LocutorIA processando audio</span>
+          <p>Gerando MP3 e aguardando liberacao da fila...</p>
+          <small>Personalidade: ${escapeHtml(locutorIaPersonalityLabel(locutorIaCue.personality || radio.locutorIaPersonality))}</small>
+          <small>Fila de audio: ${escapeHtml(audioJob ? audioJob.status : "pendente")}</small>
+          <small>Contexto: ${escapeHtml(locutorIaCue.contextKey || "programacao")} | Tempo de processamento simulado em andamento.</small>
+          <small>${escapeHtml(audioJob?.audioPath || "audio ainda nao pronto")}</small>
+        </article>
+      `;
+      renderAudioQueueStatus();
+      return;
+    }
+    if (playback?.phase === "waiting") {
+      box.innerHTML = `
+        <article class="speechCard">
+          <span>LocutorIA ativo</span>
+          <p>Aguardando entrada do locutor...</p>
+          <small>Personalidade: ${escapeHtml(locutorIaPersonalityLabel(locutorIaCue.personality || radio.locutorIaPersonality))}</small>
+          <small>Fila de audio: ${escapeHtml(audioJob ? audioJob.status : "pendente")}</small>
+          <small>Delay simulado de ${escapeHtml(String(locutorIaCue.delaySeconds))}s antes da fala. ${escapeHtml(locutorIaCue.safeToInsert ? "Janela segura detectada." : "Janela curta, mas a entrada continua sincronizada.")}</small>
+        </article>
+      `;
+      return;
+    }
+
     box.innerHTML = `
       <article class="speechCard">
-        <span>TOMA preparado pelo Xavier</span>
-        <p>${escapeHtml(tomaCue.speech)}</p>
-        <small>Atraso sugerido: ${escapeHtml(String(tomaCue.delaySeconds))}s apos o fim do bloco comercial. ${escapeHtml(tomaCue.safeToInsert ? "Janela segura detectada." : "Aguardar janela do Playlist para nao sobrepor o proximo evento.")}</small>
-        <button type="button" data-copy-text="${escapeHtml(tomaCue.speech)}">Copiar fala</button>
+        <span>LocutorIA ativo</span>
+        <p>${escapeHtml(playback?.speech || locutorIaCue.speech)}</p>
+        <small>Contexto: ${escapeHtml(locutorIaCue.contextKey || "programacao")} | Personalidade: ${escapeHtml(locutorIaPersonalityLabel(locutorIaCue.personality || radio.locutorIaPersonality))}</small>
+        <small>Fila de audio: ${escapeHtml(audioJob ? audioJob.status : "pendente")}</small>
+        <small>Delay simulado de ${escapeHtml(String(locutorIaCue.delaySeconds))}s antes da fala. ${escapeHtml(locutorIaCue.safeToInsert ? "Janela segura detectada." : "Janela curta, mas a entrada continua sincronizada.")}</small>
+        <small>Audio: ${escapeHtml(audioJob?.audioPath || "aguardando arquivo")}</small>
+        <button type="button" data-copy-text="${escapeHtml(playback?.speech || locutorIaCue.speech)}">Copiar fala</button>
       </article>
     `;
     box.querySelector("[data-copy-text]").addEventListener("click", async (event) => {
       await copyText(event.currentTarget.dataset.copyText || "");
-      notify("Fala TOMA copiada.");
+      notify("Fala LocutorIA copiada.");
     });
     return;
   }
@@ -1305,9 +2121,10 @@ function renderEventSpeech(item) {
     return;
   }
 
-  const speech = neuronId === "toma"
-    ? generateTomaSpeech(getRadioContext(), previousRealItemForCurrent())
-    : neuronFunctions[neuronId](getRadioContext())[0];
+  const previousItem = runnerState.items[runnerState.currentIndex - 1] || null;
+  const speech = locutorIaSpeechContexts.has(neuronId)
+    ? generateLocutorIaSpeech(radio, previousItem, locutorIaContextForItem(item, previousItem))
+    : neuronFunctions[neuronId](radio)[0];
   box.innerHTML = `
     <article class="speechCard">
       <span>Fala sugerida</span>
@@ -1340,33 +2157,48 @@ function findCurrentIndexByClock(items) {
 }
 
 function syncRealtimeNow() {
-  if (!runnerState.items.length) {
+  if (!runnerState.eventQueue.length) {
     notify("Analise a GRADE e MAPA antes de sincronizar.");
     return;
   }
 
-  runnerState.currentIndex = findCurrentIndexByClock(runnerState.items);
+  runnerState.currentIndex = findCurrentQueueIndexByClock(runnerState.eventQueue);
   renderCurrentProgramEvent();
   renderGradeSummary(runnerState.items, describeGrade(runnerState.items, getRadioContext()), runnerState.alerts);
-  setRunnerStatus("tempo real");
+  refreshRunnerStatus();
 }
 
 function realtimeTick() {
   const previousIndex = runnerState.currentIndex;
-  runnerState.currentIndex = findCurrentIndexByClock(runnerState.items);
+  const nextIndex = findCurrentQueueIndexByClock(runnerState.eventQueue);
+  const previousItem = runnerState.eventQueue[previousIndex] || runnerState.items[previousIndex];
+  const currentPlayback = currentLocutorIaPlaybackForItem(previousItem);
+
+  if (currentPlayback && currentPlayback.phase !== "done" && nextIndex !== previousIndex) {
+    renderCurrentProgramEvent();
+    renderGradeSummary(runnerState.items, describeGrade(runnerState.items, getRadioContext()), runnerState.alerts);
+    refreshRunnerStatus();
+    return;
+  }
+
+  runnerState.currentIndex = nextIndex;
   if (previousIndex !== runnerState.currentIndex) {
     renderCurrentProgramEvent();
     renderGradeSummary(runnerState.items, describeGrade(runnerState.items, getRadioContext()), runnerState.alerts);
   } else {
     renderRemainingTime();
   }
-  setRunnerStatus("tempo real");
+  refreshRunnerStatus();
 }
 
 function stopRunner() {
   clearInterval(runnerState.timer);
   runnerState.timer = null;
   runnerState.running = false;
+  clearLocutorIaPlayback();
+  clearAudioQueueTimers();
+  resetAudioQueueProcessing();
+  renderAudioQueueStatus();
 }
 
 function pauseRunner() {
@@ -1376,23 +2208,28 @@ function pauseRunner() {
 }
 
 function advanceRunner() {
-  if (!runnerState.items.length) {
+  if (!runnerState.eventQueue.length) {
     pauseRunner();
     return;
   }
 
+  const item = runnerState.eventQueue[runnerState.currentIndex] || runnerState.items[runnerState.currentIndex];
+  const playback = currentLocutorIaPlaybackForItem(item);
+  if (playback && playback.phase !== "done") {
+    refreshRunnerStatus();
+    return;
+  }
+
   runnerState.currentIndex += 1;
-  if (runnerState.currentIndex >= runnerState.items.length) {
-    runnerState.currentIndex = runnerState.items.length - 1;
-    stopRunner();
-    setRunnerStatus("finalizado");
+  if (runnerState.currentIndex >= runnerState.eventQueue.length) {
+    runnerState.currentIndex = 0;
   }
   renderCurrentProgramEvent();
   renderGradeSummary(runnerState.items, describeGrade(runnerState.items, getRadioContext()), runnerState.alerts);
 }
 
 function startRunner() {
-  if (!runnerState.items.length) {
+  if (!runnerState.eventQueue.length) {
     notify("Analise a GRADE e MAPA antes de iniciar.");
     return;
   }
@@ -1400,8 +2237,9 @@ function startRunner() {
   stopRunner();
   runnerState.running = true;
   runnerState.realtime = true;
+  runnerState.loopAnchorSeconds = currentClockSeconds();
+  runnerState.currentIndex = findCurrentQueueIndexByClock(runnerState.eventQueue);
   syncRealtimeNow();
-  setRunnerStatus("tempo real");
   renderCurrentProgramEvent();
   renderGradeSummary(runnerState.items, describeGrade(runnerState.items, getRadioContext()), runnerState.alerts);
   runnerState.timer = setInterval(realtimeTick, 1000);
@@ -1411,6 +2249,7 @@ function resetRunner() {
   stopRunner();
   runnerState.realtime = false;
   runnerState.currentIndex = 0;
+  runnerState.loopAnchorSeconds = null;
   renderCurrentProgramEvent();
   if (runnerState.items.length) {
     renderGradeSummary(runnerState.items, describeGrade(runnerState.items, getRadioContext()), runnerState.alerts);
@@ -1422,6 +2261,8 @@ function renderGradeSummary(items, summary, validatorAlerts = []) {
   $("#gradeItemCount").textContent = `${items.length} ${items.length === 1 ? "item" : "itens"}`;
   renderProgramSummary(items, validatorAlerts);
   const alertsByItem = groupAlertsByItem(validatorAlerts);
+  const activeQueueEvent = runnerState.eventQueue[runnerState.currentIndex] || null;
+  const activeTimelineId = activeQueueEvent?.sourceItemId || activeQueueEvent?.id || runnerState.items[runnerState.currentIndex]?.id || null;
   $("#gradeSummary").innerHTML = `
     <article class="summaryCard">
       <p>${escapeHtml(summary)}</p>
@@ -1432,10 +2273,10 @@ function renderGradeSummary(items, summary, validatorAlerts = []) {
         .map(
           (item) => {
             const itemAlerts = alertsByItem[item.id] || [];
-            const badges = itemAlerts
+              const badges = itemAlerts
               .map((alert) => `<span class="timelineAlert ${alert.severity === "critico" ? "alertCritical" : "alertWarning"}">${escapeHtml(alert.title)}</span>`)
               .join("");
-            const activeClass = runnerState.items.length && runnerState.items[runnerState.currentIndex]?.id === item.id ? "timeline-active" : "";
+            const activeClass = activeTimelineId === item.id ? "timeline-active" : "";
             return `
             <article class="timelineItem ${item.mapped ? "" : "unmapped"} ${timelineClass(itemAlerts)} ${activeClass}">
               <div class="timelineTime">
@@ -1549,6 +2390,41 @@ function loadDemoFiles() {
   notify("Exemplo de GRADE e MAPA carregado.");
 }
 
+async function testarMapa() {
+  const mapa = $("#mapaText").value || "VEM, COM, VEM, HC";
+  const box = $("#saida");
+  box.innerHTML = '<p class="emptyState">Enviando MAPA para o Xavier...</p>';
+
+  try {
+    const response = await fetch("/mapa", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mapa }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    const eventos = Array.isArray(data.eventos) ? data.eventos : [];
+
+    box.innerHTML = "";
+    if (!eventos.length) {
+      box.innerHTML = '<p class="emptyState">Nenhum evento relevante foi retornado.</p>';
+      return;
+    }
+
+    eventos.forEach((evento) => {
+      const p = document.createElement("p");
+      p.innerText = `${evento.tipo}  ${evento.fala}`;
+      box.appendChild(p);
+    });
+  } catch (error) {
+    box.innerHTML = `<p class="emptyState">Falha no teste do MAPA: ${escapeHtml(error.message || String(error))}</p>`;
+  }
+}
+
 $("#xavierForm").addEventListener("submit", (event) => {
   event.preventDefault();
   const texts = generateXavierTexts(getFormData());
@@ -1588,22 +2464,29 @@ $("#mapaFile").addEventListener("change", async (event) => {
 });
 
 $("#loadDemoFilesButton").addEventListener("click", loadDemoFiles);
+$("#testMapaButton").addEventListener("click", testarMapa);
 
 $("#analyzeFilesButton").addEventListener("click", () => {
   const codeMap = parseMapa($("#mapaText").value);
   const items = parseGrade($("#gradeText").value, codeMap);
   const radio = getRadioContext();
   const runtimeItems = prepareRuntimeTimeline(items);
-  const tomaCues = createTomaCues(runtimeItems, radio);
+  audioQueue.splice(0, audioQueue.length);
+  const locutorIaCues = createLocutorIaCues(runtimeItems, radio);
+  const eventQueueData = buildEventQueue(runtimeItems, locutorIaCues, radio);
   const validatorAlerts = validateGradeSchedule(items);
   stopRunner();
   runnerState.items = runtimeItems;
+  runnerState.eventQueue = eventQueueData.queue;
   runnerState.alerts = validatorAlerts;
-  runnerState.tomaCues = tomaCues;
-  runnerState.currentIndex = findCurrentIndexByClock(runtimeItems);
+  runnerState.locutorIaCues = locutorIaCues;
+  runnerState.queueCycleSeconds = eventQueueData.cycleSeconds;
+  runnerState.loopAnchorSeconds = currentClockSeconds();
+  runnerState.currentIndex = findCurrentQueueIndexByClock(runnerState.eventQueue);
   renderGradeSummary(runtimeItems, describeGrade(items, radio), validatorAlerts);
   renderGradeInsights(analyzeGradeItems(items, radio));
   renderValidatorAlerts(validatorAlerts);
+  renderAudioQueueStatus();
   renderCurrentProgramEvent();
   notify("GRADE e MAPA analisados.");
 });
@@ -1615,3 +2498,4 @@ $("#syncRealtimeButton").addEventListener("click", syncRealtimeNow);
 
 renderNeurons();
 renderProgramEvents();
+renderAudioQueueStatus();

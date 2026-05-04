@@ -1,0 +1,684 @@
+:root {
+  --primary: #FF3B30;
+  --secondary: #1C1C1E;
+  --background: #0B0B0C;
+  --surface: #1F1F23;
+  --border: #2C2C2E;
+  --text: #FFFFFF;
+  --text-secondary: #A1A1AA;
+  --text-weak: #71717A;
+  --accent: #FFD60A;
+  --success: #30D158;
+  --error: #FF453A;
+  --info: #0A84FF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: Inter, Segoe UI, Arial, Helvetica, sans-serif;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.xavierPage {
+  width: min(1180px, calc(100% - 24px));
+  margin: 0 auto;
+  padding: 18px 0 40px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.backLink,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--secondary);
+  color: var(--text);
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.hero,
+.xavierForm,
+.resultsPanel,
+.neuronsPanel,
+.neuronCard,
+.playlistLayer,
+.fileAnalysisLayer,
+.eventForm,
+.eventPanel,
+.filePanel,
+.recommendationPanel,
+.validatorPanel,
+.automationRunnerPanel,
+.resultCard {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+}
+
+.hero {
+  margin-bottom: 18px;
+  padding: 28px;
+}
+
+.hero h1 {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: clamp(38px, 7vw, 76px);
+  line-height: 0.95;
+}
+
+.hero p {
+  max-width: 720px;
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.eyebrow {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.generatorShell {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.08fr);
+  gap: 18px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.xavierForm,
+.resultsPanel,
+.neuronsPanel,
+.playlistLayer,
+.fileAnalysisLayer,
+.eventForm,
+.eventPanel,
+.filePanel,
+.recommendationPanel,
+.validatorPanel,
+.automationRunnerPanel {
+  padding: 22px;
+}
+
+.rightColumn,
+.playlistLayer,
+.fileAnalysisLayer,
+.validatorPanel,
+.automationRunnerPanel,
+.filePanel {
+  display: grid;
+  gap: 18px;
+}
+
+.formHeader,
+.resultsHeader {
+  margin-bottom: 16px;
+}
+
+h2 {
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 24px;
+}
+
+h3 {
+  color: var(--text);
+}
+
+.formGrid,
+.eventList,
+.recommendationGrid,
+.validatorGrid,
+.analysisBox,
+.resultGrid,
+.choiceStack {
+  display: grid;
+  gap: 12px;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--secondary);
+  color: var(--text);
+  outline: none;
+  padding: 12px 13px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-weak);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--info);
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.45;
+}
+
+button {
+  min-height: 42px;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  background: var(--primary);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 900;
+  padding: 11px 14px;
+}
+
+button:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.generateButton {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.neuronGrid,
+.recommendationGrid,
+.validatorGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.neuronCard,
+.resultCard,
+.recommendationCard,
+.validatorCard {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.neuronCard span,
+.cardTop span,
+.counter,
+.timelineAlert {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 6px 10px;
+}
+
+.neuronCard h3 {
+  margin: 10px 0 6px;
+  font-size: 18px;
+}
+
+.neuronCard p,
+.itemCopy,
+.eventCard span,
+.eventCard p,
+.timelineContent p,
+.nextEventCard p,
+.speechCard p,
+.remainingTimeCard p {
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.neuronCard button,
+.resultCard button,
+.recommendationCard button,
+.validatorCard button,
+.speechCard button {
+  justify-self: start;
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.resultCard p,
+.recommendationCard p,
+.validatorCard p,
+.summaryCard p,
+.currentEventCard p {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.layerHeader,
+.panelTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.automationGrid,
+.fileGrid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.eventForm,
+.fileInputs,
+.programSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.programSummaryGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.eventPanel,
+.recommendationPanel,
+.validatorPanel,
+.automationRunnerPanel {
+  border-color: var(--border);
+}
+
+.eventList,
+.recommendationGrid,
+.validatorGrid,
+.analysisBox {
+  margin-top: 14px;
+}
+
+.eventCard,
+.summaryMetric,
+.summaryCard,
+.timelineItem,
+.currentEventCard,
+.nextEventCard,
+.speechCard,
+.remainingTimeCard {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 14px;
+}
+
+.eventCard {
+  display: grid;
+  gap: 8px;
+  border-left: 5px solid var(--info);
+}
+
+.eventCard strong,
+.eventCard span {
+  display: block;
+}
+
+.severity-alta,
+.priority-alta,
+.validator-critico,
+.timeline-critical,
+.timelineItem.unmapped {
+  border-color: var(--error);
+}
+
+.severity-media,
+.priority-media,
+.validator-aviso,
+.timeline-warning {
+  border-color: var(--accent);
+}
+
+.priority-alta,
+.validator-critico,
+.timeline-critical,
+.timelineItem.unmapped {
+  border-left-color: var(--error);
+}
+
+.priority-media,
+.validator-aviso,
+.timeline-warning {
+  border-left-color: var(--accent);
+}
+
+.programSummaryGrid {
+  gap: 10px;
+}
+
+.summaryMetric span {
+  display: block;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.summaryMetric strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.alertMetric {
+  border-color: var(--error);
+}
+
+.alertMetric strong {
+  color: var(--error);
+}
+
+.timelineList {
+  display: grid;
+  gap: 0;
+  max-height: 520px;
+  overflow: auto;
+  padding-left: 2px;
+}
+
+.timelineItem {
+  position: relative;
+  display: grid;
+  grid-template-columns: 82px 20px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  margin-bottom: 10px;
+  border-left: 5px solid var(--info);
+}
+
+.timelineItem.timeline-active {
+  border-color: var(--info);
+}
+
+.timelineItem.timeline-active .timelineMarker {
+  border-color: var(--info);
+}
+
+.timelineTime {
+  display: grid;
+  gap: 4px;
+}
+
+.timelineTime strong {
+  color: var(--text);
+  font-size: 15px;
+}
+
+.timelineTime span,
+.timelineTop span,
+.currentEventCard span,
+.currentEventCard small,
+.nextEventCard span,
+.speechCard span,
+.remainingTimeCard span {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.timelineMarker {
+  position: relative;
+  width: 14px;
+  height: 14px;
+  margin-top: 3px;
+  border: 3px solid var(--info);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.timelineMarker::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  width: 2px;
+  height: 70px;
+  background: var(--border);
+  transform: translateX(-50%);
+}
+
+.timeline-critical .timelineMarker {
+  border-color: var(--error);
+}
+
+.timeline-warning .timelineMarker {
+  border-color: var(--accent);
+}
+
+.timelineContent {
+  display: grid;
+  gap: 8px;
+}
+
+.timelineTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.timelineTop strong,
+.timelineTop span {
+  display: block;
+}
+
+.timelineAlerts,
+.validatorCounters,
+.runnerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.alertCritical,
+.dangerCounter {
+  background: var(--secondary);
+  color: var(--error);
+}
+
+.alertWarning,
+.warningCounter {
+  background: var(--secondary);
+  color: var(--accent);
+}
+
+.currentEventBox,
+.nextEventBox,
+.eventSpeechBox,
+.remainingTimeBox {
+  display: grid;
+}
+
+.currentEventCard {
+  display: grid;
+  gap: 8px;
+  border-left: 6px solid var(--info);
+}
+
+.nextEventCard,
+.speechCard,
+.remainingTimeCard {
+  display: grid;
+  gap: 8px;
+}
+
+.speechCard {
+  border-color: var(--info);
+}
+
+.remainingTimeCard {
+  border-color: var(--accent);
+}
+
+.currentEventCard strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 22px;
+}
+
+.nextEventCard strong {
+  color: var(--text);
+  font-size: 17px;
+}
+
+.remainingTimeCard strong {
+  color: var(--accent);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.runnerActions button {
+  min-width: 120px;
+}
+
+.validatorCard {
+  border-left: 6px solid var(--info);
+}
+
+.validatorCard strong {
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.validator-ok {
+  border-left-color: var(--success);
+}
+
+.validator-ok .cardTop span {
+  color: var(--success);
+}
+
+.emptyState {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text-weak);
+  padding: 18px;
+}
+
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 20;
+  max-width: 360px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 12px 14px;
+}
+
+@media (max-width: 850px) {
+  .generatorShell,
+  .neuronGrid,
+  .automationGrid,
+  .eventForm,
+  .fileGrid,
+  .fileInputs,
+  .recommendationGrid,
+  .validatorGrid,
+  .programSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero,
+  .xavierForm,
+  .resultsPanel,
+  .neuronsPanel,
+  .playlistLayer,
+  .fileAnalysisLayer,
+  .eventForm,
+  .eventPanel,
+  .filePanel,
+  .recommendationPanel,
+  .validatorPanel,
+  .automationRunnerPanel {
+    padding: 18px;
+  }
+
+  .hero h1 {
+    font-size: 46px;
+  }
+
+  .timelineItem {
+    grid-template-columns: 1fr;
+  }
+
+  .timelineMarker {
+    display: none;
+  }
+
+  .timelineTop {
+    display: grid;
+  }
+
+}

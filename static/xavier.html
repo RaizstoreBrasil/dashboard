@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#0B0B0C" />
+    <title>Xavier - Gerador de textos</title>
+    <link rel="stylesheet" href="/static/xavier.css" />
+  </head>
+  <body>
+    <main class="xavierPage">
+      <header class="topbar">
+        <a href="/advanced" class="backLink">Painel</a>
+        <span>Xavier</span>
+      </header>
+
+      <section class="hero">
+        <div>
+          <span class="eyebrow">Camada inteligente</span>
+          <h1>Xavier</h1>
+          <p>Camada acima da automacao Playlist Digital. Ele nao toca audio: analisa a grade, cria falas, sugere campanhas e emite alertas operacionais para o operador.</p>
+        </div>
+      </section>
+
+      <section class="generatorShell" aria-label="Gerador Xavier">
+        <form id="xavierForm" class="xavierForm">
+          <div class="formHeader">
+            <div>
+              <span class="eyebrow">Dados da radio</span>
+              <h2>Preencha as informacoes</h2>
+            </div>
+          </div>
+
+          <div class="formGrid">
+            <label>
+              Nome da radio
+              <input id="radioName" name="radioName" required placeholder="Ex: Radio Cidade FM" />
+            </label>
+            <label>
+              Cidade
+              <input id="city" name="city" required placeholder="Ex: Sao Paulo" />
+            </label>
+            <label>
+              Frequencia
+              <input id="frequency" name="frequency" required placeholder="Ex: 98.7 FM" />
+            </label>
+            <label>
+              Slogan
+              <input id="slogan" name="slogan" required placeholder="Ex: A radio que toca voce" />
+            </label>
+            <label>
+              Estilo da radio
+              <input id="style" name="style" required placeholder="Ex: sertanejo, pop, gospel" />
+            </label>
+            <label>
+              Tipo de conteudo
+              <select id="contentType" name="contentType" required>
+                <option value="Hora certa">Hora certa</option>
+                <option value="Chamada da radio">Chamada da radio</option>
+                <option value="Comercial">Comercial</option>
+                <option value="Campanha">Campanha</option>
+                <option value="Aviso">Aviso</option>
+              </select>
+            </label>
+          </div>
+
+          <button type="submit" class="generateButton">Gerar textos</button>
+        </form>
+
+        <div class="rightColumn">
+          <section class="neuronsPanel">
+            <div class="resultsHeader">
+              <div>
+                <span class="eyebrow">Neuronios</span>
+                <h2>Funcoes do Xavier</h2>
+              </div>
+            </div>
+            <div id="xavierNeurons" class="neuronGrid"></div>
+          </section>
+
+          <section class="resultsPanel">
+            <div class="resultsHeader">
+              <div>
+                <span class="eyebrow">Resultados</span>
+                <h2>Textos gerados</h2>
+              </div>
+            </div>
+            <div id="xavierResults" class="resultGrid">
+              <p class="emptyState">Os 3 textos aparecem aqui depois de gerar ou testar um neuronio.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="playlistLayer" aria-label="Camada inteligente acima da Playlist Digital">
+        <div class="layerHeader">
+          <div>
+            <span class="eyebrow">Playlist Digital</span>
+            <h2>Eventos da programacao</h2>
+          </div>
+          <button id="loadDemoEventsButton" type="button" class="secondaryButton">Carregar exemplo</button>
+        </div>
+
+        <div class="automationGrid">
+          <form id="programEventForm" class="eventForm">
+            <label>
+              Horario
+              <input id="eventTime" name="eventTime" type="time" required />
+            </label>
+            <label>
+              Tipo de evento
+              <select id="eventType" name="eventType" required>
+                <option value="musica">Musica</option>
+                <option value="comercial">Comercial</option>
+                <option value="vinheta">Vinheta</option>
+                <option value="noticia">Noticia</option>
+                <option value="campanha">Campanha</option>
+                <option value="intervalo">Intervalo</option>
+                <option value="falha">Falha operacional</option>
+              </select>
+            </label>
+            <label>
+              Titulo
+              <input id="eventTitle" name="eventTitle" required placeholder="Ex: Bloco comercial local" />
+            </label>
+            <label>
+              Status
+              <select id="eventStatus" name="eventStatus" required>
+                <option value="programado">Programado</option>
+                <option value="executado">Executado</option>
+                <option value="atrasado">Atrasado</option>
+                <option value="ausente">Ausente</option>
+              </select>
+            </label>
+            <label class="wide">
+              Observacao
+              <input id="eventNote" name="eventNote" placeholder="Ex: anunciante pediu reforco na chamada" />
+            </label>
+            <button type="submit" class="generateButton">Adicionar evento</button>
+          </form>
+
+          <section class="eventPanel">
+            <div class="panelTop">
+              <h3>Grade recebida</h3>
+              <button id="analyzeScheduleButton" type="button">Gerar recomendacoes</button>
+            </div>
+            <div id="programEventList" class="eventList">
+              <p class="emptyState">Nenhum evento recebido ainda.</p>
+            </div>
+          </section>
+        </div>
+
+        <section class="recommendationPanel">
+          <div class="panelTop">
+            <h3>Recomendacoes inteligentes para o operador</h3>
+            <span id="recommendationCount" class="counter">0 itens</span>
+          </div>
+          <div id="xavierRecommendations" class="recommendationGrid">
+            <p class="emptyState">As recomendacoes aparecem aqui depois da analise da grade.</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="fileAnalysisLayer" aria-label="Analise de arquivos GRADE e MAPA">
+        <div class="layerHeader">
+          <div>
+            <span class="eyebrow">Arquivos Playlist Digital</span>
+            <h2>Leitor de GRADE e MAPA</h2>
+          </div>
+          <button id="loadDemoFilesButton" type="button" class="secondaryButton">Usar exemplo</button>
+        </div>
+
+        <div class="fileGrid">
+          <section class="filePanel">
+            <h3>Entrada dos arquivos</h3>
+            <div class="fileInputs">
+              <label>
+                Arquivo GRADE
+                <input id="gradeFile" type="file" accept=".txt,.csv,.grade,.map,.log" />
+              </label>
+              <label>
+                Arquivo MAPA
+                <input id="mapaFile" type="file" accept=".txt,.csv,.map,.grade,.log" />
+              </label>
+            </div>
+            <label>
+              Conteudo da GRADE
+              <textarea id="gradeText" rows="10" placeholder="Ex: 08:00 HC&#10;08:01 MUS Artista - Musica&#10;08:15 CH&#10;08:30 COM"></textarea>
+            </label>
+            <label>
+              Conteudo do MAPA
+              <textarea id="mapaText" rows="8" placeholder="Ex: HC=Hora certa&#10;CH=Chamada da radio&#10;COM=Comercial"></textarea>
+            </label>
+            <button id="analyzeFilesButton" type="button" class="generateButton">Analisar GRADE e MAPA</button>
+          </section>
+
+          <section class="filePanel">
+            <div class="panelTop">
+              <h3>Descricao inteligente da programacao</h3>
+              <span id="gradeItemCount" class="counter">0 itens</span>
+            </div>
+            <div id="programSummaryPanel" class="programSummaryGrid">
+              <article class="summaryMetric"><span>Musicas</span><strong>0</strong></article>
+              <article class="summaryMetric"><span>Comerciais</span><strong>0</strong></article>
+              <article class="summaryMetric"><span>Vinhetas</span><strong>0</strong></article>
+              <article class="summaryMetric"><span>Chamadas</span><strong>0</strong></article>
+              <article class="summaryMetric"><span>Horas certas</span><strong>0</strong></article>
+              <article class="summaryMetric alertMetric"><span>Alertas</span><strong>0</strong></article>
+            </div>
+            <div id="gradeSummary" class="analysisBox">
+              <p class="emptyState">Carregue ou cole os arquivos para o Xavier interpretar a grade.</p>
+            </div>
+          </section>
+        </div>
+
+        <section class="recommendationPanel">
+          <div class="panelTop">
+            <h3>Padroes, repeticoes e melhorias</h3>
+            <span id="gradeInsightCount" class="counter">0 analises</span>
+          </div>
+          <div id="gradeInsights" class="recommendationGrid">
+            <p class="emptyState">As analises da sequencia aparecem aqui.</p>
+          </div>
+        </section>
+
+        <section class="automationRunnerPanel">
+          <div class="panelTop">
+            <div>
+              <span class="eyebrow">Simulacao</span>
+              <h3>Acompanhamento da execucao</h3>
+            </div>
+            <span id="runnerStatus" class="counter">parado</span>
+          </div>
+          <div id="currentProgramEvent" class="currentEventBox">
+            <p class="emptyState">Analise a GRADE e clique em Iniciar para simular a programacao.</p>
+          </div>
+          <div id="nextProgramEvent" class="nextEventBox">
+            <p class="emptyState">O proximo evento aparece aqui durante o acompanhamento.</p>
+          </div>
+          <div id="remainingTimeBox" class="remainingTimeBox">
+            <p class="emptyState">O tempo restante aparece aqui durante a simulacao.</p>
+          </div>
+          <div id="eventSpeechBox" class="eventSpeechBox">
+            <p class="emptyState">A fala correspondente aparece aqui quando o evento atual for HC, CH, COM ou LOC.</p>
+          </div>
+          <div class="runnerActions">
+            <button id="startRunnerButton" type="button">Iniciar</button>
+            <button id="pauseRunnerButton" type="button" class="secondaryButton">Pausar</button>
+            <button id="resetRunnerButton" type="button" class="secondaryButton">Reiniciar</button>
+            <button id="syncRealtimeButton" type="button" class="secondaryButton">Sincronizar agora</button>
+          </div>
+        </section>
+
+        <section class="validatorPanel">
+          <div class="panelTop">
+            <div>
+              <span class="eyebrow">Xavier Validador</span>
+              <h3>Validacao da programacao</h3>
+            </div>
+            <div class="validatorCounters">
+              <span id="validatorCriticalCount" class="counter dangerCounter">0 criticos</span>
+              <span id="validatorWarningCount" class="counter warningCounter">0 avisos</span>
+            </div>
+          </div>
+          <div id="xavierValidatorAlerts" class="validatorGrid">
+            <p class="emptyState">Os alertas do Validador aparecem depois da analise da GRADE e MAPA.</p>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" hidden></div>
+    <script src="/static/xavier.js"></script>
+  </body>
+</html>

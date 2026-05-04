@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#2563eb" />
+    <title>Fabrica de Agentes IA</title>
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <div class="appShell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brandIcon">IA</div>
+          <div>
+            <strong>Fabrica de Agentes</strong>
+            <span>WhatsApp + IA</span>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="#landing" class="active">Landing</a>
+          <a href="#dashboard">Dashboard</a>
+          <a href="#companies">Empresas</a>
+          <a href="#agents">Agentes</a>
+          <a href="#prompts">Prompts</a>
+          <a href="#conversations">Conversas</a>
+          <a href="#customers">Clientes</a>
+          <a href="#plans">Planos</a>
+          <a href="#settings">Configuracoes</a>
+          <a href="#integrations">Integracoes</a>
+          <a href="#whatsapp">WhatsApp</a>
+          <a href="/xavier">Xavier</a>
+          <a href="#reports">Relatorios</a>
+          <a href="/docs">API Docs</a>
+        </nav>
+        <div class="sideStatus">
+          <span class="pulse"></span>
+          <div>
+            <strong id="healthText">Conectando...</strong>
+            <small>Servidor local</small>
+          </div>
+        </div>
+        <button id="themeButton" type="button" class="themeButton">Alternar tema</button>
+      </aside>
+
+      <main class="main">
+        <header class="appHeader">
+          <label class="searchBox">
+            <span>Buscar</span>
+            <input id="globalSearch" placeholder="Buscar empresas, agentes, conversas..." />
+          </label>
+          <div class="headerActions">
+            <a class="gradientButton" href="#agents">Novo Agente</a>
+            <button id="notifyButton" type="button" class="iconButton">Notificacoes</button>
+            <button id="themeButtonTop" type="button" class="iconButton">Tema</button>
+            <div class="profileChip">
+              <span>AP</span>
+              <strong>Admin</strong>
+            </div>
+          </div>
+        </header>
+
+        <section class="landingHero" id="landing">
+          <div class="heroCopy">
+            <span class="eyebrow">SaaS de automacao com IA</span>
+            <h1>Venda, atenda e automatize conversas no WhatsApp com agentes inteligentes.</h1>
+            <p>Uma plataforma para cadastrar empresas, criar agentes por IA, configurar prompts, preparar WhatsApp e acompanhar conversas em um painel simples.</p>
+            <div class="heroActions">
+              <a class="primaryLink" href="#agents">Criar agente</a>
+              <a class="secondaryLink" href="#dashboard">Ver dashboard</a>
+            </div>
+          </div>
+          <div class="demoPhone">
+            <div class="phoneTop">Agente online</div>
+            <div class="bubble bot">Ola! Sou o assistente da sua empresa. Como posso ajudar?</div>
+            <div class="bubble user">Quero saber valores e horarios.</div>
+            <div class="bubble bot">Claro. Me diga qual servico voce procura e eu te passo as melhores opcoes.</div>
+          </div>
+        </section>
+
+        <section class="landingSections">
+          <article><strong>Beneficios</strong><span>Atendimento rapido, menos perda de leads e respostas padronizadas.</span></article>
+          <article><strong>Como funciona</strong><span>Cadastre empresa, gere agente, conecte WhatsApp e acompanhe tudo.</span></article>
+          <article><strong>Nichos</strong><span>Clinicas, delivery, servicos locais, infoprodutos, imobiliarias e ecommerce.</span></article>
+          <article><strong>Planos</strong><span>Estrutura pronta para planos, limites e evolucao SaaS.</span></article>
+          <article><strong>Antes e depois</strong><span>Saia do atendimento manual espalhado para uma operacao com logs, status e funil.</span></article>
+          <article><strong>Depoimentos</strong><span>"Organizamos leads, WhatsApp e respostas em uma unica tela."</span></article>
+          <article><strong>FAQ</strong><span>Funciona local hoje e esta preparado para Supabase, Evolution API e producao.</span></article>
+          <article><strong>CTA final</strong><span>Crie um agente demo, conecte uma instancia e mostre valor em minutos.</span></article>
+        </section>
+
+        <header class="hero" id="dashboard">
+          <div>
+            <span class="eyebrow">Painel administrativo</span>
+            <h2>Operacao da plataforma</h2>
+            <p>Fluxo do dono: empresa -> agente -> prompt -> WhatsApp -> link/QR -> acompanhamento.</p>
+          </div>
+          <div class="heroActions">
+            <button id="seedButton" type="button">Criar dados demo</button>
+            <button id="refreshButton" type="button">Atualizar</button>
+          </div>
+        </header>
+
+        <section class="metrics">
+          <article class="metric"><span>Empresas</span><strong id="companyCount">0</strong></article>
+          <article class="metric"><span>Agentes</span><strong id="agentCount">0</strong></article>
+          <article class="metric"><span>Conversas</span><strong id="conversationCount">0</strong></article>
+          <article class="metric"><span>Clientes</span><strong id="customerCount">0</strong></article>
+          <article class="metric"><span>Agentes ativos</span><strong id="activeAgentCount">0</strong></article>
+          <article class="metric"><span>Faturamento estimado</span><strong id="estimatedRevenue">R$ 0</strong></article>
+        </section>
+
+        <section class="gridTwo">
+          <article class="surface">
+            <div class="surfaceHeader"><div><h2>Grafico de conversas</h2><p>Volume visual dos ultimos periodos.</p></div></div>
+            <div id="conversationChart" class="chartBars"></div>
+          </article>
+          <article class="surface">
+            <div class="surfaceHeader"><div><h2>Status das integracoes</h2><p>Online, pendente ou desconectado.</p></div></div>
+            <div id="integrationStatusList" class="list"></div>
+          </article>
+        </section>
+
+        <section class="creatorFlow" id="agents">
+          <article class="surface setupGuide">
+            <div class="surfaceHeader"><div><h2>Criar agente facil</h2><p>Inspirado no fluxo simples: dados, objetivo e WhatsApp.</p></div></div>
+            <div class="steps">
+              <div class="step active"><span>1</span><strong>Colar dados</strong><small>Texto, site, servicos, FAQ</small></div>
+              <div class="step"><span>2</span><strong>Escolher funcao</strong><small>Vendas, suporte ou agenda</small></div>
+              <div class="step"><span>3</span><strong>Conectar WhatsApp</strong><small>Instancia do agente</small></div>
+              <div class="step"><span>4</span><strong>Testar</strong><small>Conversa pronta</small></div>
+            </div>
+          </article>
+
+          <article class="surface" id="companies">
+            <div class="surfaceHeader"><div><h2>1. Empresa</h2><p>Comece pelo cliente que vai usar o agente.</p></div></div>
+            <form id="companyForm" class="form">
+              <label>Nome da empresa<input id="companyName" required /></label>
+              <label>Segmento<input id="companySegment" /></label>
+              <label>Responsavel<input id="companyContact" /></label>
+              <label>WhatsApp<input id="companyWhatsapp" placeholder="https://wa.me/55..." /></label>
+              <label>Plano<input id="companyPlan" placeholder="Starter, Pro..." /></label>
+              <button type="submit">Salvar empresa</button>
+            </form>
+            <div id="companyList" class="list mt"></div>
+          </article>
+
+          <article class="surface">
+            <div class="surfaceHeader"><div><h2>2. Gerar agente</h2><p>Preencha poucos campos. O sistema cria prompt, respostas e fluxo sozinho.</p></div></div>
+            <form id="smartAgentForm" class="form">
+              <label>Nome da empresa<input id="smartCompany" value="Empresa Cliente" required /></label>
+              <label>Nome do agente<input id="smartName" value="Atendente Virtual" required /></label>
+              <label>Tipo de agente
+                <select id="agentMode">
+                  <option value="sales">Vendas pelo WhatsApp</option>
+                  <option value="support">Suporte e atendimento</option>
+                  <option value="schedule">Agendamentos</option>
+                </select>
+              </label>
+              <label>Segmento
+                <select id="smartSegment" required>
+                  <option>Servicos locais</option>
+                  <option>Clinica / Saude</option>
+                  <option>Delivery / Restaurante</option>
+                  <option>Imobiliaria</option>
+                  <option>Infoproduto</option>
+                  <option>Ecommerce</option>
+                </select>
+              </label>
+              <div class="sourceBuilder wide">
+                <div class="sourceTabs" aria-label="Fontes do agente">
+                  <button type="button" class="sourceTab active" data-source="website">Website</button>
+                  <button type="button" class="sourceTab" data-source="qa">Q&A</button>
+                  <button type="button" class="sourceTab" data-source="text">Texto</button>
+                  <button type="button" class="sourceTab" data-source="pdf">PDF</button>
+                  <button type="button" class="sourceTab" data-source="video">Videos</button>
+                </div>
+                <div class="sourcePanel">
+                  <h3 id="sourceTitle">Fonte: Website</h3>
+                  <p id="sourceHelp">Cole o site do cliente. O sistema usa esse link como base para montar o agente.</p>
+                  <input id="sourceInput" placeholder="https://site-do-cliente.com.br" />
+                  <button type="button" id="addSourceButton" class="secondaryAction">Adicionar fonte</button>
+                </div>
+                <label class="wide">Fontes adicionadas para treinar o agente
+                  <textarea id="smartProducts" rows="6" required>Produtos e servicos principais, precos, horarios, perguntas frequentes, regras, links e informacoes da empresa.</textarea>
+                </label>
+              </div>
+              <label>Tom de voz
+                <select id="smartTone" required>
+                  <option>simpatico, objetivo e vendedor</option>
+                  <option>profissional, claro e seguro</option>
+                  <option>acolhedor, humano e consultivo</option>
+                  <option>direto, rapido e comercial</option>
+                </select>
+              </label>
+              <label>Horario de atendimento<input id="smartHours" value="Segunda a sexta, 08h as 18h" required /></label>
+              <label class="wide">Link do WhatsApp do cliente<input id="smartWhatsapp" placeholder="https://wa.me/55..." /></label>
+              <input id="smartObjective" type="hidden" value="Atender leads, tirar duvidas, apresentar oferta e encaminhar para fechamento." />
+              <input id="smartFaq" type="hidden" value="Preco, prazo, formas de pagamento, horarios, garantia e disponibilidade." />
+              <input id="smartRules" type="hidden" value="Nao inventar informacoes. Confirmar dados antes de finalizar. Chamar humano quando houver duvida sensivel." />
+              <input id="smartCan" type="hidden" value="Tirar duvidas, apresentar ofertas, qualificar clientes, coletar dados e direcionar atendimento." />
+              <input id="smartCannot" type="hidden" value="Prometer desconto sem autorizacao, inventar estoque, confirmar pagamento sem comprovante ou dar garantias falsas." />
+              <input id="smartNotes" type="hidden" value="Criado pelo fluxo simples." />
+              <details class="advancedBox wide">
+                <summary>Configuracao avancada do WhatsApp</summary>
+                <div class="form nestedForm">
+                  <label>Nome da instancia<input id="smartInstance" placeholder="agente-cliente-01" /></label>
+                  <label>URL Evolution API<input id="smartEvolutionUrl" value="https://evolutionapi.vps7829.panel.icontainer.cloud" /></label>
+                  <label class="wide">Chave da Evolution API do agente<input id="smartEvolutionKey" type="password" placeholder="apikey da instancia/agente" /></label>
+                </div>
+              </details>
+              <div class="wizardActions wide">
+                <button type="submit">Gerar agente com IA</button>
+                <button type="button" id="fillExampleButton" class="secondaryAction">Preencher exemplo</button>
+              </div>
+            </form>
+          </article>
+        </section>
+
+        <section class="gridTwo">
+          <article class="surface" id="prompts">
+            <div class="surfaceHeader"><div><h2>Agentes criados</h2><p>Use os botoes principais. Opcoes tecnicas ficam em avancado.</p></div></div>
+            <div id="agentList" class="list"></div>
+          </article>
+
+          <article class="surface" id="conversations">
+            <div class="surfaceHeader"><div><h2>Conversas</h2><p>Visao de atendimentos e status.</p></div></div>
+            <div id="conversationList" class="list"></div>
+          </article>
+        </section>
+
+        <section class="surface">
+          <div class="surfaceHeader"><div><h2>Configuracoes da plataforma</h2><p>Marca, cores, preferencias e chaves ficam centralizadas aqui.</p></div></div>
+          <div class="settingsGrid">
+            <label>Nome da marca<input value="Fabrica de Agentes IA" /></label>
+            <label>Logo<input placeholder="URL do logo" /></label>
+            <label>Cor primaria<input value="#6366F1" /></label>
+            <label>Preferencia visual<select><option>Dark mode premium</option><option>Light mode limpo</option></select></label>
+          </div>
+        </section>
+
+        <section class="gridTwo">
+          <article class="surface" id="customers">
+            <div class="surfaceHeader"><div><h2>Clientes</h2><p>Leads e contatos atendidos.</p></div></div>
+            <div id="customerList" class="list"></div>
+          </article>
+          <article class="surface" id="plans">
+            <div class="surfaceHeader"><div><h2>Planos</h2><p>Ofertas comerciais do SaaS.</p></div></div>
+            <div id="planList" class="list"></div>
+          </article>
+        </section>
+
+        <section class="gridTwo">
+          <article class="surface" id="integrations">
+            <div class="surfaceHeader"><div><h2>Integracoes e WhatsApp</h2><p>Preparado para Evolution API, webhooks e QR.</p></div></div>
+            <div id="integrationList" class="list"></div>
+          </article>
+          <article class="surface" id="settings">
+            <div class="surfaceHeader"><div><h2>Configuracoes</h2><p>Parametros globais e pronto para Supabase.</p></div></div>
+            <div id="settingList" class="list"></div>
+          </article>
+        </section>
+
+        <section class="surface chatSurface" id="whatsapp">
+          <div class="chatHeader">
+            <div class="avatar">WA</div>
+            <div>
+              <h2>4. Testar agente</h2>
+              <p id="selectedRun">Escolha um agente, envie uma pergunta e veja a resposta</p>
+            </div>
+          </div>
+          <form id="taskForm" class="form compactForm">
+            <label>Agente<select id="agentSelect" required></select></label>
+            <label class="wide">Tarefa<textarea id="taskPrompt" rows="3" required>Crie uma mensagem de WhatsApp para vender uma rifa de 150 numeros.</textarea></label>
+            <button type="submit">Executar tarefa</button>
+          </form>
+          <form id="whatsappSendForm" class="form compactForm">
+            <label>Telefone de teste<input id="waNumber" placeholder="5517999999999" /></label>
+            <label class="wide">Mensagem WhatsApp<textarea id="waText" rows="3">Ola! Essa e uma mensagem de teste enviada pela instancia do agente.</textarea></label>
+            <button type="submit">Enviar WhatsApp pela instancia</button>
+          </form>
+          <div id="runList" class="list"></div>
+          <pre id="outputBox">O resultado do agente aparece aqui.</pre>
+        </section>
+
+        <section class="landingSections" id="reports">
+          <article><strong>Relatorios</strong><span>Runs, custo estimado, status e conversas recentes.</span></article>
+          <article><strong>FAQ</strong><span>O painel roda local agora e fica pronto para Supabase/Postgres depois.</span></article>
+          <article><strong>CTA</strong><span>Configure uma empresa demo e mostre o link ao cliente em minutos.</span></article>
+          <article><strong>Rodape</strong><span>Fabrica de Agentes IA - plataforma administravel.</span></article>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+@baseUrl = http://localhost:8060
+
+### Health
+GET {{baseUrl}}/health
+
+### List workspaces
+GET {{baseUrl}}/workspaces
+
+### Create workspace
+POST {{baseUrl}}/workspaces
+Content-Type: application/json
+
+{
+  "name": "Meu Workspace",
+  "owner_email": "admin@example.com"
+}
+
+### Create agent
+POST {{baseUrl}}/agents
+Content-Type: application/json
+
+{
+  "workspace_id": 1,
+  "name": "Agente de Suporte",
+  "description": "Responde clientes usando ferramentas internas.",
+  "system_prompt": "Voce e um agente de suporte claro, objetivo e confiavel.",
+  "model": "gpt-4.1-mini",
+  "temperature": 0.4,
+  "status": "active"
+}
+
+### Create HTTP tool
+POST {{baseUrl}}/tools
+Content-Type: application/json
+
+{
+  "workspace_id": 1,
+  "name": "search_customers",
+  "description": "Busca clientes no CRM.",
+  "type": "http",
+  "schema_json": {
+    "type": "object",
+    "properties": {
+      "email": { "type": "string" }
+    },
+    "required": ["email"]
+  },
+  "config_json": {
+    "method": "GET",
+    "url": "https://example.com/customers"
+  },
+  "enabled": true
+}
+
+### Run agent
+POST {{baseUrl}}/runs
+Content-Type: application/json
+
+{
+  "agent_id": 1,
+  "user_email": "cliente@example.com",
+  "input": "Procure o cliente cliente@example.com e resuma o status."
+}
+
+### Get run detail
+GET {{baseUrl}}/runs/1

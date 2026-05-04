@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Painel - Fabrica de Agentes</title>
+    <link rel="stylesheet" href="/static/simple.css" />
+  </head>
+  <body>
+    <main class="appShell">
+      <header class="hero">
+        <div class="heroCopy">
+          <span class="eyebrow">Painel simples</span>
+          <h1>Crie agentes, prompts e teste conversas em um fluxo visual, clicavel e direto.</h1>
+          <p>Escolha empresa, objetivo, personalidade e regras. Gere o prompt, revise e teste em uma tela igual ao WhatsApp.</p>
+          <div class="heroActions">
+            <button id="themeToggle" type="button" class="ghostButton">Claro / Escuro</button>
+            <a href="/advanced" class="ghostLink">Abrir modo avancado</a>
+            <a href="/xavier" class="ghostLink">Abrir Xavier</a>
+          </div>
+        </div>
+
+        <div class="heroSummary">
+          <div class="metricCard">
+            <span>Empresas</span>
+            <strong id="statCompanies">0</strong>
+          </div>
+          <div class="metricCard">
+            <span>Agentes</span>
+            <strong id="statAgents">0</strong>
+          </div>
+          <div class="metricCard">
+            <span>Conectados</span>
+            <strong id="statConnected">0</strong>
+          </div>
+          <div class="metricCard">
+            <span>Testes</span>
+            <strong id="statRuns">0</strong>
+          </div>
+        </div>
+      </header>
+
+      <section class="shortcutGrid" aria-label="Acoes rapidas">
+        <button class="shortcutCard" data-jump="wizard">
+          <strong>Criar novo agente</strong>
+          <span>Fluxo guiado em 5 etapas</span>
+        </button>
+        <button class="shortcutCard" data-jump="promptFactory">
+          <strong>Fabrica de prompts</strong>
+          <span>Gere, melhore e salve modelos</span>
+        </button>
+        <button class="shortcutCard" data-jump="chatTester">
+          <strong>Testar conversa</strong>
+          <span>Aba tipo WhatsApp</span>
+        </button>
+        <button class="shortcutCard" data-jump="templates">
+          <strong>Modelos prontos</strong>
+          <span>Nichos clicaveis</span>
+        </button>
+        <button class="shortcutCard" data-jump="connectBox">
+          <strong>Conectar WhatsApp</strong>
+          <span>Instancia por agente</span>
+        </button>
+        <button class="shortcutCard" data-jump="agentListBox">
+          <strong>Ver agentes</strong>
+          <span>Gerencie tudo em um lugar</span>
+        </button>
+      </section>
+
+      <section class="panel wizardPanel" id="wizard">
+        <div class="panelHeader">
+          <div>
+            <span class="panelKicker">Assistente</span>
+            <h2>Criação do agente em 5 passos</h2>
+          </div>
+          <div class="progressMeta">
+            <span id="stepHelp">Etapa 1 de 5</span>
+            <div class="progressBar" aria-hidden="true"><span id="progressFill"></span></div>
+          </div>
+        </div>
+
+        <nav class="wizardSteps" aria-label="Etapas da criacao">
+          <button class="wizardStep active" type="button" data-step="1">1 Empresa</button>
+          <button class="wizardStep" type="button" data-step="2">2 Objetivo</button>
+          <button class="wizardStep" type="button" data-step="3">3 Personalidade</button>
+          <button class="wizardStep" type="button" data-step="4">4 Regras</button>
+          <button class="wizardStep" type="button" data-step="5">5 Gerar e testar</button>
+        </nav>
+
+        <div class="stepPanel active" data-panel="1">
+          <div class="sectionHeaderInline">
+            <div>
+              <h3>Empresa</h3>
+              <p>Preencha os dados basicos. O restante e montado automaticamente.</p>
+            </div>
+            <button id="fillExampleButton" type="button" class="ghostButton">Preencher exemplo</button>
+          </div>
+          <div class="formGrid">
+            <label>Nome da empresa<input id="companyName" placeholder="Ex: Le Doces" /></label>
+            <label>Segmento<input id="companySegment" placeholder="Ex: Doceria" /></label>
+            <label>Cidade<input id="companyCity" placeholder="Ex: Sao Paulo" /></label>
+            <label>WhatsApp<input id="companyWhatsapp" placeholder="https://wa.me/55..." /></label>
+            <label>Horario de atendimento<input id="businessHours" placeholder="Segunda a sexta, 08h as 18h" /></label>
+            <label class="wide">Produtos / servicos principais<textarea id="products" rows="4" placeholder="Cole servicos, cardapio, regras, links e detalhes do negocio."></textarea></label>
+          </div>
+        </div>
+
+        <div class="stepPanel" data-panel="2">
+          <div class="sectionHeaderInline">
+            <div>
+              <h3>Objetivo do agente</h3>
+              <p>Clique em um card para definir a missao do agente.</p>
+            </div>
+          </div>
+          <div id="objectiveCards" class="choiceGrid"></div>
+        </div>
+
+        <div class="stepPanel" data-panel="3">
+          <div class="sectionHeaderInline">
+            <div>
+              <h3>Personalidade</h3>
+              <p>Escolha o tom que o agente vai usar nas respostas.</p>
+            </div>
+          </div>
+          <div id="toneCards" class="choiceGrid"></div>
+        </div>
+
+        <div class="stepPanel" data-panel="4">
+          <div class="sectionHeaderInline">
+            <div>
+              <h3>Regras do atendimento</h3>
+              <p>Marque o comportamento padrao que o agente deve seguir.</p>
+            </div>
+          </div>
+          <div id="ruleChecks" class="checkGrid"></div>
+        </div>
+
+        <div class="stepPanel" data-panel="5">
+          <div class="sectionHeaderInline">
+            <div>
+              <h3>Gerar e testar</h3>
+              <p>Gere o prompt, copie, salve ou crie o agente direto daqui.</p>
+            </div>
+          </div>
+          <div class="actionGrid">
+            <button id="generatePromptButton" type="button">Gerar prompt completo</button>
+            <button id="createAgentButton" type="button">Criar agente</button>
+            <button id="copyPromptButton" type="button" class="ghostButton">Copiar prompt</button>
+            <button id="saveAgentButton" type="button" class="ghostButton">Salvar agente</button>
+            <button id="activateAgentButton" type="button" class="ghostButton">Ativar agente</button>
+            <button data-jump="chatTester" type="button" class="ghostButton">Testar conversa</button>
+          </div>
+          <div class="previewShell">
+            <div class="previewHeader">
+              <strong>Preview do prompt</strong>
+              <span id="draftStatus">Aguardando geracao</span>
+            </div>
+            <pre id="promptPreview">Clique em "Gerar prompt completo".</pre>
+          </div>
+        </div>
+
+        <div class="wizardNav">
+          <button id="prevStepButton" type="button" class="ghostButton">Voltar</button>
+          <button id="nextStepButton" type="button">Continuar</button>
+        </div>
+      </section>
+
+      <section class="panel" id="templates">
+        <div class="panelHeader">
+          <div>
+            <span class="panelKicker">Modelos prontos</span>
+            <h2>Biblioteca de nichos</h2>
+          </div>
+          <p>Clique em um modelo para preencher objetivo, tom, regras e mensagem inicial.</p>
+        </div>
+        <div id="templateGrid" class="templateGrid"></div>
+      </section>
+
+      <section class="panel" id="promptFactory">
+        <div class="panelHeader">
+          <div>
+            <span class="panelKicker">Fabrica de prompts</span>
+            <h2>Crie e refine prompts com um clique</h2>
+          </div>
+          <p>Use para transformar uma ideia em prompt pronto para agente ou atendimento.</p>
+        </div>
+        <div class="formGrid">
+          <label>Tipo de prompt
+            <select id="promptType">
+              <option>Atendimento</option>
+              <option>Vendas</option>
+              <option>Suporte</option>
+              <option>Cobranca</option>
+            </select>
+          </label>
+          <label>Nicho<input id="promptNiche" placeholder="Ex: Barbearia" /></label>
+          <label>Objetivo<input id="promptObjective" placeholder="Ex: vender pelo WhatsApp" /></label>
+          <label>Tom de voz
+            <select id="promptTone">
+              <option>simples</option>
+              <option>profissional</option>
+              <option>humano</option>
+              <option>vendedor</option>
+            </select>
+          </label>
+          <label>Canal
+            <select id="promptChannel">
+              <option>WhatsApp</option>
+              <option>Site</option>
+              <option>Instagram</option>
+              <option>Atendimento interno</option>
+            </select>
+          </label>
+          <label>Nivel
+            <select id="promptLevel">
+              <option>simples</option>
+              <option>profissional</option>
+              <option>avancado</option>
+            </select>
+          </label>
+        </div>
+        <div class="actionGrid">
+          <button id="factoryGenerateButton" type="button">Gerar prompt</button>
+          <button data-polish="better" type="button" class="ghostButton">Melhorar prompt</button>
+          <button data-polish="seller" type="button" class="ghostButton">Deixar mais vendedor</button>
+          <button data-polish="short" type="button" class="ghostButton">Deixar mais curto</button>
+          <button data-polish="human" type="button" class="ghostButton">Deixar mais humano</button>
+          <button data-polish="pro" type="button" class="ghostButton">Deixar mais profissional</button>
+          <button id="factoryCopyButton" type="button" class="ghostButton">Copiar</button>
+          <button id="factorySaveButton" type="button" class="ghostButton">Salvar como modelo</button>
+          <button id="factoryToAgentButton" type="button">Transformar em agente</button>
+        </div>
+        <div class="previewShell">
+          <div class="previewHeader">
+            <strong>Prompt da fabrica</strong>
+            <span id="factoryStatus">Pronto</span>
+          </div>
+          <pre id="factoryPromptOutput">O prompt aparece aqui.</pre>
+        </div>
+      </section>
+
+      <section class="panel" id="chatTester">
+        <div class="panelHeader">
+          <div>
+            <span class="panelKicker">WhatsApp fake</span>
+            <h2>Teste o agente antes de publicar</h2>
+          </div>
+          <p>Simule a conversa em uma aba visual parecida com o WhatsApp.</p>
+        </div>
+
+        <div class="whatsappLayout">
+          <aside class="conversationRail">
+            <div class="railHeader">
+              <strong>Conversas de teste</strong>
+              <span>Escolha o comportamento</span>
+            </div>
+            <div class="threadList" id="threadList">
+              <button class="threadCard active" type="button" data-thread="lead">
+                <strong>Lead novo</strong>
+                <span>Quero saber valores</span>
+              </button>
+              <button class="threadCard" type="button" data-thread="support">
+                <strong>Cliente atual</strong>
+                <span>Tenho uma duvida</span>
+              </button>
+              <button class="threadCard" type="button" data-thread="schedule">
+                <strong>Agendamento</strong>
+                <span>Quero marcar horario</span>
+              </button>
+            </div>
+            <div class="quickPick">
+              <span class="pill">WhatsApp</span>
+              <span class="pill">Teste rapido</span>
+              <span class="pill">Sem publicar</span>
+            </div>
+          </aside>
+
+          <div class="phoneMock">
+            <div class="phoneTopBar">
+              <div class="avatarDot"></div>
+              <div>
+                <strong id="chatAgentName">Agente em teste</strong>
+                <span id="chatAgentStatus">Pronto para conversar</span>
+              </div>
+              <button id="chatModeButton" type="button" class="ghostButton smallButton">Aba WhatsApp</button>
+            </div>
+
+            <div id="chatMessages" class="chatMessages"></div>
+
+            <div id="chatQuickReplies" class="chatQuickReplies"></div>
+
+            <form id="chatForm" class="chatComposer">
+              <input id="chatInput" placeholder="Digite uma mensagem..." autocomplete="off" />
+              <button type="submit">Enviar</button>
+            </form>
+          </div>
+
+          <div class="testActions">
+            <button id="clearChatButton" type="button" class="ghostButton">Limpar teste</button>
+            <button id="approveAgentButton" type="button">Aprovar agente</button>
+            <button id="backEditButton" type="button" class="ghostButton">Voltar e editar</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="connectBox">
+        <div class="panelHeader">
+          <div>
+            <span class="panelKicker">WhatsApp</span>
+            <h2>Conectar por instância</h2>
+          </div>
+          <p>Configure Evolution por agente sem mostrar complexidade para o usuario final.</p>
+        </div>
+        <form id="connectForm" class="formGrid">
+          <label>Agente<select id="agentSelect"></select></label>
+          <label>Nome da instancia<input id="instanceName" placeholder="agente-cliente-01" /></label>
+          <label>URL Evolution<input id="evolutionUrl" value="https://evolutionapi.vps7829.panel.icontainer.cloud" /></label>
+          <label>Chave Evolution<input id="evolutionKey" type="password" placeholder="Chave da instância" /></label>
+          <button type="submit">Salvar e conectar</button>
+        </form>
+        <pre id="connectResult">O QR/status aparece aqui.</pre>
+      </section>
+
+      <section class="panel" id="agentListBox">
+        <div class="panelHeader">
+          <div>
+            <span class="panelKicker">Gestao</span>
+            <h2>Agentes criados</h2>
+          </div>
+          <p>Teste, conecte WhatsApp e revise o prompt de cada agente.</p>
+        </div>
+        <div id="agentList" class="agentList"></div>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" hidden></div>
+    <script src="/static/simple.js"></script>
+  </body>
+</html>

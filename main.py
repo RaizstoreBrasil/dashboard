@@ -187,25 +187,11 @@ def generate_xavier_audio(payload: XavierAudioGenerateRequest) -> dict:
     }
 
 
-@app.post("/mapa", response_model=dict)
-def receive_mapa(payload: XavierMapaRequest) -> dict:
-    mapa = payload.mapa or ""
-    eventos = [item.strip() for item in mapa.split(",") if item.strip()]
-    resposta = []
-
-    if "COM" in eventos:
-        fala = gerar_fala("COM")
-        print("Comercial detectado")
-        print("LocutorIA:", fala)
-        resposta.append({"tipo": "COM", "fala": fala})
-
-    if "HC" in eventos:
-        fala = gerar_fala("HC")
-        print("Hora certa detectada")
-        print("LocutorIA:", fala)
-        resposta.append({"tipo": "HC", "fala": fala})
-
-    return {"eventos": resposta}
+@app.post("/mapa")
+async def receber_mapa(data: dict):
+    mapa = data.get("mapa", "")
+    print("MAPA recebido:", mapa)
+    return {"ok": True}
 
 
 async def execute_run(run_id: int) -> None:
